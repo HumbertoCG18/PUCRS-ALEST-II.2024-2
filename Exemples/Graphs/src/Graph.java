@@ -76,6 +76,7 @@ public class Graph {
      * @param  V number of vertices
      * @throws IllegalArgumentException if {@code V < 0}
      */
+    @SuppressWarnings("unchecked")
     public Graph(int V) {
         if (V < 0) throw new IllegalArgumentException("Number of vertices must be nonnegative");
         this.V = V;
@@ -97,6 +98,7 @@ public class Graph {
      * @throws IllegalArgumentException if the number of vertices or edges is negative
      * @throws IllegalArgumentException if the input stream is in the wrong format
      */
+    @SuppressWarnings("unchecked")
     public Graph(In in) {
         try {
             this.V = in.readInt();

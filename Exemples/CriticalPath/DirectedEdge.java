@@ -49,7 +49,7 @@ public class DirectedEdge {
 
     public DirectedEdge(int v, int w, double weight, String atttr) {
         this(v,w,weight);
-        this.attr = attr;
+        //this.attr = attr;
     }
     /**
      * Returns the tail vertex of the directed edge.

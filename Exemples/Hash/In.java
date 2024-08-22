@@ -153,6 +153,7 @@ public final class In {
      *         a file or URL
      * @throws IllegalArgumentException if {@code name} is {@code null}
      */
+    @SuppressWarnings("deprecation")
     public In(String name) {
         if (name == null) throw new IllegalArgumentException("argument is null");
         try {

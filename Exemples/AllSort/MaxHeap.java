@@ -15,15 +15,15 @@ public class MaxHeap {
     size = values.length;
   }
 
-  private int left(int i) {
+  public int left(int i) {
     return 2 * i;
   }
 
-  private int right(int i) {
+  public int right(int i) {
     return 2 * i + 1;
   }
 
-  private int parent(int i) {
+  public int parent(int i) {
     return i / 2;
   }
 
