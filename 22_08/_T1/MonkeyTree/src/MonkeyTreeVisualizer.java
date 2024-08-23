@@ -51,13 +51,13 @@ public class MonkeyTreeVisualizer extends JPanel {
 
     // Exibe um diálogo para seleção de arquivo com arquivos em ordem crescente
     private static String selectFileDialog() {
-        File dir = new File("lib");
+        String projectRoot = System.getProperty("user.dir");  // Diretório raiz do projeto
+        File dir = new File(projectRoot + "/lib");
         String[] txtFiles = dir.list((d, name) -> name.endsWith(".txt"));
-
+    
         if (txtFiles != null && txtFiles.length > 0) {
-            // Ordena os arquivos em ordem crescente pelo nome
             Arrays.sort(txtFiles, Comparator.comparingInt(a -> Integer.parseInt(a.replaceAll("\\D", ""))));
-
+    
             String selectedFile = (String) JOptionPane.showInputDialog(
                     null,
                     "Escolha um arquivo TXT para visualizar:",
@@ -66,7 +66,7 @@ public class MonkeyTreeVisualizer extends JPanel {
                     null,
                     txtFiles,
                     txtFiles[0]);
-
+    
             return selectedFile;
         } else {
             JOptionPane.showMessageDialog(null, "Nenhum arquivo TXT encontrado na pasta 'lib'.");
