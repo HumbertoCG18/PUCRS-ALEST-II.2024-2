@@ -57,7 +57,7 @@ public class MonkeyTree extends JPanel {
         String selectedFile = null;
         try {
             // Especifique o caminho relativo para a pasta onde estão os arquivos TXT
-            File dir = new File("22_08/T1/Casos").getCanonicalFile(); // Caminho absoluto relativo ao diretório atual
+            File dir = new File("../Casos").getCanonicalFile(); // Caminho absoluto relativo ao diretório atual
             String[] txtFiles = dir.list((d, name) -> name.endsWith(".txt"));
 
             if (txtFiles != null && txtFiles.length > 0) {
