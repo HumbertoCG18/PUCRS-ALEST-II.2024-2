@@ -1,5 +1,7 @@
 package src;
 
+//TODO IMPLEMENTAR A ANIMAÇÃO DE LEITURA DA ÁRVORE DE IDA E DE VOLTA
+
 import javax.swing.*;
 import java.awt.*;
 import java.io.BufferedReader;
@@ -52,16 +54,13 @@ public class MonkeyTree extends JPanel {
         });
     }
 
-    // Exibe um diálogo para seleção de arquivo com arquivos em ordem crescente
     private static String selectFileDialog() {
         String selectedFile = null;
         try {
-            // Especifique o caminho relativo para a pasta onde estão os arquivos TXT
             File dir = new File("../Casos").getCanonicalFile(); // Caminho absoluto relativo ao diretório atual
             String[] txtFiles = dir.list((d, name) -> name.endsWith(".txt"));
 
             if (txtFiles != null && txtFiles.length > 0) {
-                // Ordena os arquivos em ordem crescente pelo nome
                 Arrays.sort(txtFiles, Comparator.comparingInt(a -> Integer.parseInt(a.replaceAll("\\D", ""))));
 
                 selectedFile = (String) JOptionPane.showInputDialog(
@@ -74,7 +73,6 @@ public class MonkeyTree extends JPanel {
                         txtFiles[0]);
 
                 if (selectedFile != null) {
-                    // Retorna o caminho absoluto do arquivo selecionado
                     return new File(dir, selectedFile).getAbsolutePath();
                 }
             } else {
@@ -87,7 +85,6 @@ public class MonkeyTree extends JPanel {
         return selectedFile;
     }
 
-    // Lê a árvore a partir de um arquivo
     private char[][] readTreeFromFile(String filePath) {
         try (BufferedReader reader = new BufferedReader(new FileReader(filePath, StandardCharsets.UTF_8))) {
             String[] dimensions = reader.readLine().split(" ");
@@ -111,49 +108,47 @@ public class MonkeyTree extends JPanel {
         }
     }
 
-    // Método que inicia a visualização
     public void startVisualization() {
-        findStartingPoint(); // Encontra a posição inicial correta
-        calculateMaxPath();  // Calcula o caminho máximo primeiro
-        Timer timer = new Timer(200, e -> animateStep());
-        timer.start();
+        findStartingPoint();
+        calculateMaxPath(); // Preprocessa a árvore para calcular os valores máximos
+        maxSum = dfs(startRow, startCol); // Inicia a DFS a partir da raiz usando os valores precomputados
+        animateReturnPath(); // Anima a volta pelo melhor caminho encontrado
     }
 
-    // Encontra o ponto inicial na base da árvore
     private void findStartingPoint() {
-        startRow = height - 1; // Inicia na última linha
         for (int col = 0; col < width; col++) {
-            if (tree[startRow][col] == '|') {
+            // Procura pela raiz na última linha (deve ser um tronco '|')
+            if (tree[height - 1][col] == '|') {
+                startRow = height - 1;
                 startCol = col;
-                break;
+                currentRow = startRow;
+                currentCol = startCol;
+                return;
             }
         }
     }
 
-    // Calcula o caminho máximo da raiz até a folha de maior valor
     private void calculateMaxPath() {
         maxPathSums = new int[height][width];
         path = new int[height][width];
         maxSum = 0;
 
-        // Inicializa a última linha (raiz) com valores
         for (int j = 0; j < width; j++) {
             if (Character.isDigit(tree[height - 1][j])) {
                 maxPathSums[height - 1][j] = Character.getNumericValue(tree[height - 1][j]);
             }
         }
 
-        // Calcula a soma máxima de baixo para cima, incluindo a consideração dos nós V e W
         for (int i = height - 2; i >= 0; i--) {
             for (int j = 0; j < width; j++) {
-                if (tree[i][j] == '/' || tree[i][j] == '\\' || tree[i][j] == '|' || tree[i][j] == 'V' || tree[i][j] == 'W') {
+                if (tree[i][j] == '/' || tree[i][j] == '\\' || tree[i][j] == '|' || tree[i][j] == 'V'
+                        || tree[i][j] == 'W') {
                     int left = (j > 0) ? maxPathSums[i + 1][j - 1] : Integer.MIN_VALUE;
                     int right = (j < width - 1) ? maxPathSums[i + 1][j + 1] : Integer.MIN_VALUE;
                     int straight = maxPathSums[i + 1][j];
 
                     maxPathSums[i][j] = Math.max(Math.max(left, right), straight);
 
-                    // Considera os nós 'V' e 'W' como parte do caminho
                     if (tree[i][j] == 'V' || tree[i][j] == 'W') {
                         maxPathSums[i][j] += 1;
                     }
@@ -165,76 +160,51 @@ public class MonkeyTree extends JPanel {
             }
         }
 
-        // Determina o ponto inicial para a animação (início na base da árvore)
         currentRow = startRow;
         currentCol = startCol;
     }
 
-    // Anima passo a passo da raiz até a folha de maior valor
-    private void animateStep() {
-        if (currentRow >= 0) {
-            path[currentRow][currentCol] = 1;  // Caminho de ida em vermelho
-            repaint();
-            updateStatusMessage();  // Atualiza o status na parte inferior
-
-            // Determina o próximo passo com base na soma máxima
-            if (currentRow > 0) {
-                int leftCol = currentCol - 1;
-                int rightCol = currentCol + 1;
-
-                // Verificar e corrigir possíveis índices fora dos limites
-                int leftValue = (leftCol >= 0 && leftCol < width) ? maxPathSums[currentRow - 1][leftCol] : Integer.MIN_VALUE;
-                int rightValue = (rightCol >= 0 && rightCol < width) ? maxPathSums[currentRow - 1][rightCol] : Integer.MIN_VALUE;
-                int straightValue = maxPathSums[currentRow - 1][currentCol];
-
-                if (leftValue >= rightValue && leftValue >= straightValue && leftCol >= 0) {
-                    currentCol = leftCol;
-                } else if (rightValue > leftValue && rightValue >= straightValue && rightCol < width) {
-                    currentCol = rightCol;
-                }
-            }
-
-            currentRow--;
-        } else {
-            calculateFinalSum();
-            animateReturnPath();
+    private int dfs(int row, int col) {
+        if (row < 0 || col < 0 || col >= width || tree[row][col] == ' ') {
+            return 0; // Fora dos limites ou caminho inválido
         }
-    }
 
-    // Calcula a soma final do caminho
-    private void calculateFinalSum() {
-        int sum = 0;
-        int col = currentCol;
-        for (int i = 0; i < height; i++) {
-            if (Character.isDigit(tree[i][col])) {
-                sum += Character.getNumericValue(tree[i][col]);
-            }
-            if (i < height - 1) {
-                int leftCol = col - 1;
-                int rightCol = col + 1;
-
-                int leftValue = (leftCol >= 0 && leftCol < width) ? maxPathSums[i + 1][leftCol] : Integer.MIN_VALUE;
-                int rightValue = (rightCol >= 0 && rightCol < width) ? maxPathSums[i + 1][rightCol] : Integer.MIN_VALUE;
-                int straightValue = maxPathSums[i + 1][col];
-
-                if (leftValue >= rightValue && leftValue >= straightValue && leftCol >= 0) {
-                    col = leftCol;
-                } else if (rightValue >= leftValue && rightValue >= straightValue && rightCol < width) {
-                    col = rightCol;
-                }
-            }
+        if (tree[row][col] == '#') {
+            return 0; // Alcançou uma folha
         }
-        maxSum = sum;
-        statusMessage = "Completo - Soma máxima: " + maxSum;
+
+        // Marcar o caminho na ida
+        path[row][col] = 1;
         repaint();
+
+        int leftCol = col - 1;
+        int rightCol = col + 1;
+
+        // Explora os três possíveis caminhos usando maxPathSums como referência
+        int leftSum = (leftCol >= 0) ? dfs(row - 1, leftCol) + maxPathSums[row][col] : Integer.MIN_VALUE;
+        int rightSum = (rightCol < width) ? dfs(row - 1, rightCol) + maxPathSums[row][col] : Integer.MIN_VALUE;
+        int straightSum = dfs(row - 1, col) + maxPathSums[row][col];
+
+        // Encontra o maior valor entre os caminhos
+        int maxSumPath = Math.max(Math.max(leftSum, rightSum), straightSum);
+
+        // Desmarcar o caminho após voltar (para explorar outras possibilidades)
+        path[row][col] = 0;
+
+        return maxSumPath;
     }
 
-    // Anima a volta do caminho (verde) para indicar que o macaquinho passou por ali
     private void animateReturnPath() {
         Timer returnTimer = new Timer(200, e -> {
             if (currentRow < height - 1) {
+                // Segue o caminho marcado na ida, ao contrário, para retornar
+                if (currentRow < height - 1 && currentCol > 0 && path[currentRow + 1][currentCol - 1] == 1) {
+                    currentCol--;  // Vai para a esquerda
+                } else if (currentRow < height - 1 && currentCol < width - 1 && path[currentRow + 1][currentCol + 1] == 1) {
+                    currentCol++;  // Vai para a direita
+                }
                 currentRow++;
-                path[currentRow][currentCol] = 2;  // Caminho de volta em verde
+                path[currentRow][currentCol] = 2;  // Marca o caminho de volta em verde
                 repaint();
             } else {
                 ((Timer) e.getSource()).stop();
@@ -244,39 +214,31 @@ public class MonkeyTree extends JPanel {
         returnTimer.start();
     }
 
-    // Atualiza a mensagem de status na parte inferior da tela
-    private void updateStatusMessage() {
-        statusMessage = "Parcial - Caminho percorrido até agora";
-    }
-
-    // Método de desenho da árvore
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
 
-        // Calcular o deslocamento para centralizar a árvore
         int xOffset = (getWidth() - tree[0].length * CELL_SIZE) / 2;
         int yOffset = (getHeight() - tree.length * CELL_SIZE) / 2;
 
         for (int i = 0; i < tree.length; i++) {
             for (int j = 0; j < tree[0].length; j++) {
                 if (tree[i][j] != ' ') {
-                    g.setColor(Color.WHITE);  // Cor da árvore em branco
+                    g.setColor(Color.WHITE);
                     g.drawRect(xOffset + j * CELL_SIZE, yOffset + i * CELL_SIZE, CELL_SIZE, CELL_SIZE);
                     g.drawString(Character.toString(tree[i][j]), xOffset + j * CELL_SIZE + 5, yOffset + i * CELL_SIZE + 15);
 
                     if (path[i][j] == 1) {
-                        g.setColor(Color.RED);  // Caminho de ida em vermelho
+                        g.setColor(Color.RED);
                         g.fillRect(xOffset + j * CELL_SIZE, yOffset + i * CELL_SIZE, CELL_SIZE, CELL_SIZE);
                     } else if (path[i][j] == 2) {
-                        g.setColor(Color.GREEN);  // Caminho de volta em verde
+                        g.setColor(Color.GREEN);
                         g.fillRect(xOffset + j * CELL_SIZE, yOffset + i * CELL_SIZE, CELL_SIZE, CELL_SIZE);
                     }
                 }
             }
         }
 
-        // Desenha a mensagem de status na parte inferior
         g.setColor(Color.WHITE);
         g.drawString(statusMessage, 10, getHeight() - 10);
     }
