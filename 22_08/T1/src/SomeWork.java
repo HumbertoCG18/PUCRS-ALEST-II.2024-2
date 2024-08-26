@@ -1,7 +1,5 @@
 package src;
 
-//todo: Arrumar a renderização (consegui fazer funcionar no arquivo SomeWork.java)
-
 import javax.swing.*;
 import java.awt.*;
 import java.io.BufferedReader;
@@ -11,8 +9,9 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.Stack;
 
-public class MonkeyTree extends JPanel {
+public class SomeWork extends JPanel {
 
     private char[][] tree;
     private int[][] path;
@@ -26,7 +25,11 @@ public class MonkeyTree extends JPanel {
     private int currentRow;
     private int currentCol;
 
-    public MonkeyTree(String filePath) {
+    private Timer stepTimer;
+    private Stack<Point> dfsStack = new Stack<>();
+    private boolean isReturning = false;
+
+    public SomeWork(String filePath) {
         this.tree = readTreeFromFile(filePath);
         this.path = new int[tree.length][tree[0].length];
         this.height = tree.length;
@@ -110,15 +113,15 @@ public class MonkeyTree extends JPanel {
 
     public void startVisualization() {
         findStartingPoint();
-        calculateMaxPath(); // Preprocessa a árvore para calcular os valores máximos
-        maxSum = dfs(startRow, startCol); // Inicia a DFS a partir da raiz usando os valores precomputados
-        System.out.println("Max Sum: " + maxSum);
-        animateReturnPath(); // Anima a volta pelo melhor caminho encontrado
+        calculateMaxPath();
+        dfsStack.push(new Point(startRow, startCol)); // Inicializa a pilha com o ponto inicial
+        maxSum = 0;
+        stepTimer = new Timer(200, e -> animateStep());
+        stepTimer.start();
     }
 
     private void findStartingPoint() {
         for (int col = 0; col < width; col++) {
-            // Procura pela raiz na última linha (deve ser um tronco '|')
             if (tree[height - 1][col] == '|') {
                 startRow = height - 1;
                 startCol = col;
@@ -132,7 +135,6 @@ public class MonkeyTree extends JPanel {
     private void calculateMaxPath() {
         maxPathSums = new int[height][width];
         path = new int[height][width];
-        maxSum = 0;
 
         for (int j = 0; j < width; j++) {
             if (Character.isDigit(tree[height - 1][j])) {
@@ -160,63 +162,41 @@ public class MonkeyTree extends JPanel {
                 }
             }
         }
-
-        currentRow = startRow;
-        currentCol = startCol;
     }
 
-    private int dfs(int row, int col) {
-        if (row < 0 || col < 0 || col >= width || tree[row][col] == ' ') {
-            return 0; // Fora dos limites ou caminho inválido
-        }
+    private void animateStep() {
+        if (!dfsStack.isEmpty()) {
+            Point currentPoint = dfsStack.pop();
+            currentRow = currentPoint.x;
+            currentCol = currentPoint.y;
 
-        if (tree[row][col] == '#') {
-            System.out.println("Leaf found at (" + row + ", " + col + ")");
-            return 0; // Alcançou uma folha
-        }
+            if (!isReturning) {
+                if (tree[currentRow][currentCol] == '#') {
+                    isReturning = true;
+                    dfsStack.push(currentPoint); // Reempurra o ponto para processar o retorno
+                } else {
+                    path[currentRow][currentCol] = 1; // Marca como parte do caminho (vermelho)
+                    repaint();
 
-        // Marcar o caminho na ida
-        path[row][col] = 1;
-        repaint();
-
-        int leftCol = col - 1;
-        int rightCol = col + 1;
-
-        // Explora os três possíveis caminhos usando maxPathSums como referência
-        int leftSum = (leftCol >= 0) ? dfs(row - 1, leftCol) + maxPathSums[row][col] : Integer.MIN_VALUE;
-        int rightSum = (rightCol < width) ? dfs(row - 1, rightCol) + maxPathSums[row][col] : Integer.MIN_VALUE;
-        int straightSum = dfs(row - 1, col) + maxPathSums[row][col];
-
-        // Encontra o maior valor entre os caminhos
-        int maxSumPath = Math.max(Math.max(leftSum, rightSum), straightSum);
-
-        // Log the decision-making process
-        System.out.println("At (" + row + ", " + col + ") - maxSumPath: " + maxSumPath);
-
-        // Desmarcar o caminho após voltar (para explorar outras possibilidades)
-        path[row][col] = 0;
-
-        return maxSumPath;
-    }
-
-    private void animateReturnPath() {
-        Timer returnTimer = new Timer(200, e -> {
-            if (currentRow < height - 1) {
-                // Segue o caminho marcado na ida, ao contrário, para retornar
-                if (currentRow < height - 1 && currentCol > 0 && path[currentRow + 1][currentCol - 1] == 1) {
-                    currentCol--;  // Vai para a esquerda
-                } else if (currentRow < height - 1 && currentCol < width - 1 && path[currentRow + 1][currentCol + 1] == 1) {
-                    currentCol++;  // Vai para a direita
+                    if (currentCol > 0 && tree[currentRow - 1][currentCol - 1] != ' ') {
+                        dfsStack.push(new Point(currentRow - 1, currentCol - 1));
+                    }
+                    if (tree[currentRow - 1][currentCol] != ' ') {
+                        dfsStack.push(new Point(currentRow - 1, currentCol));
+                    }
+                    if (currentCol < width - 1 && tree[currentRow - 1][currentCol + 1] != ' ') {
+                        dfsStack.push(new Point(currentRow - 1, currentCol + 1));
+                    }
                 }
-                currentRow++;
-                path[currentRow][currentCol] = 2;  // Marca o caminho de volta em verde
-                repaint();
             } else {
-                ((Timer) e.getSource()).stop();
-                JOptionPane.showMessageDialog(this, "Soma máxima do caminho: " + maxSum);
+                path[currentRow][currentCol] = 2; // Retornando - marca como caminho verde
+                maxSum += Character.isDigit(tree[currentRow][currentCol]) ? Character.getNumericValue(tree[currentRow][currentCol]) : 0;
+                repaint();
             }
-        });
-        returnTimer.start();
+        } else {
+            stepTimer.stop();
+            JOptionPane.showMessageDialog(this, "Soma máxima do caminho: " + maxSum);
+        }
     }
 
     @Override
@@ -236,9 +216,13 @@ public class MonkeyTree extends JPanel {
                     if (path[i][j] == 1) {
                         g.setColor(Color.RED);
                         g.fillRect(xOffset + j * CELL_SIZE, yOffset + i * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+                        g.setColor(Color.WHITE);
+                        g.drawString(Character.toString(tree[i][j]), xOffset + j * CELL_SIZE + 5, yOffset + i * CELL_SIZE + 15);
                     } else if (path[i][j] == 2) {
                         g.setColor(Color.GREEN);
                         g.fillRect(xOffset + j * CELL_SIZE, yOffset + i * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+                        g.setColor(Color.BLACK);
+                        g.drawString(Character.toString(tree[i][j]), xOffset + j * CELL_SIZE + 5, yOffset + i * CELL_SIZE + 15);
                     }
                 }
             }
