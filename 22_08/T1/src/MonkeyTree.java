@@ -4,9 +4,10 @@ package src;
             // No caso se for W, ele tenta ir para a esquerda primeiro, caso ele ja tenha pintado de verde, ele procura o caminho do meio, e caso ambos ja estiverem pintados, pega o caminho da direita
             //No caso do V, ele também sempre prioriza o caminho da esquerda, e depois vai para o caminho a direita
             // Fazer com que, o caminho com a maior soma, seja pintado de outra cor diferente (laranja)
-            // 
-
-
+            // Fazer com que, onde aparece analisando, apareça a soma atual do galho, e também, a soma máxima atual
+            // Também tenha em mente que, o valor é computado na IDA (vermelho), e na volta (verde) o valor é diminuido 
+            // arrumar a função de soma == Tendo em mente que sempre haverá um número na raiz, esse número será base para todo o resto das somas 
+            // fazer um botão que resete a árvore, para recomeçar a renderização
 import javax.swing.*;
 import java.awt.*;
 import java.io.BufferedReader;
