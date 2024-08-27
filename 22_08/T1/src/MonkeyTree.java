@@ -1,7 +1,5 @@
 package src;
 
-//todo: Arrumar a renderização (consegui fazer funcionar no arquivo SomeWork.java)
-
 import javax.swing.*;
 import java.awt.*;
 import java.io.BufferedReader;
@@ -11,6 +9,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.Stack;
 
 public class MonkeyTree extends JPanel {
 
@@ -25,6 +24,10 @@ public class MonkeyTree extends JPanel {
 
     private int currentRow;
     private int currentCol;
+
+    private javax.swing.Timer stepTimer;
+    private Stack<int[]> dfsStack;
+    private boolean isReturning = false;
 
     public MonkeyTree(String filePath) {
         this.tree = readTreeFromFile(filePath);
@@ -111,9 +114,11 @@ public class MonkeyTree extends JPanel {
     public void startVisualization() {
         findStartingPoint();
         calculateMaxPath(); // Preprocessa a árvore para calcular os valores máximos
-        maxSum = dfs(startRow, startCol); // Inicia a DFS a partir da raiz usando os valores precomputados
-        System.out.println("Max Sum: " + maxSum);
-        animateReturnPath(); // Anima a volta pelo melhor caminho encontrado
+
+        dfsStack = new Stack<>();
+        dfsStack.push(new int[]{startRow, startCol, 0}); // Inicializa a pilha com a raiz (row, col, depth)
+        stepTimer = new javax.swing.Timer(200, e -> animateStep());
+        stepTimer.start();
     }
 
     private void findStartingPoint() {
@@ -160,63 +165,63 @@ public class MonkeyTree extends JPanel {
                 }
             }
         }
-
-        currentRow = startRow;
-        currentCol = startCol;
     }
 
-    private int dfs(int row, int col) {
-        if (row < 0 || col < 0 || col >= width || tree[row][col] == ' ') {
-            return 0; // Fora dos limites ou caminho inválido
-        }
+    private void animateStep() {
+        if (!dfsStack.isEmpty()) {
+            int[] pos = dfsStack.peek(); // Não removemos ainda, pois podemos voltar a este nó
+            currentRow = pos[0];
+            currentCol = pos[1];
+            int depth = pos[2];
 
-        if (tree[row][col] == '#') {
-            System.out.println("Leaf found at (" + row + ", " + col + ")");
-            return 0; // Alcançou uma folha
-        }
-
-        // Marcar o caminho na ida
-        path[row][col] = 1;
-        repaint();
-
-        int leftCol = col - 1;
-        int rightCol = col + 1;
-
-        // Explora os três possíveis caminhos usando maxPathSums como referência
-        int leftSum = (leftCol >= 0) ? dfs(row - 1, leftCol) + maxPathSums[row][col] : Integer.MIN_VALUE;
-        int rightSum = (rightCol < width) ? dfs(row - 1, rightCol) + maxPathSums[row][col] : Integer.MIN_VALUE;
-        int straightSum = dfs(row - 1, col) + maxPathSums[row][col];
-
-        // Encontra o maior valor entre os caminhos
-        int maxSumPath = Math.max(Math.max(leftSum, rightSum), straightSum);
-
-        // Log the decision-making process
-        System.out.println("At (" + row + ", " + col + ") - maxSumPath: " + maxSumPath);
-
-        // Desmarcar o caminho após voltar (para explorar outras possibilidades)
-        path[row][col] = 0;
-
-        return maxSumPath;
-    }
-
-    private void animateReturnPath() {
-        Timer returnTimer = new Timer(200, e -> {
-            if (currentRow < height - 1) {
-                // Segue o caminho marcado na ida, ao contrário, para retornar
-                if (currentRow < height - 1 && currentCol > 0 && path[currentRow + 1][currentCol - 1] == 1) {
-                    currentCol--;  // Vai para a esquerda
-                } else if (currentRow < height - 1 && currentCol < width - 1 && path[currentRow + 1][currentCol + 1] == 1) {
-                    currentCol++;  // Vai para a direita
+            if (isReturning) {
+                // Verifica se há caminhos não explorados ao retornar
+                if (currentCol > 0 && isValidMove(currentRow - 1, currentCol - 1) && path[currentRow - 1][currentCol - 1] == 0) {
+                    isReturning = false; // Encontrou um caminho à esquerda, para de retornar
+                } else if (isValidMove(currentRow - 1, currentCol) && path[currentRow - 1][currentCol] == 0) {
+                    isReturning = false; // Encontrou um caminho em frente, para de retornar
+                } else if (currentCol < width - 1 && isValidMove(currentRow - 1, currentCol + 1) && path[currentRow - 1][currentCol + 1] == 0) {
+                    isReturning = false; // Encontrou um caminho à direita, para de retornar
+                } else {
+                    // Continua a voltar, pinta de verde
+                    path[currentRow][currentCol] = 2;
+                    dfsStack.pop(); // Volta ao nó anterior
+                    repaint();
                 }
-                currentRow++;
-                path[currentRow][currentCol] = 2;  // Marca o caminho de volta em verde
-                repaint();
-            } else {
-                ((Timer) e.getSource()).stop();
-                JOptionPane.showMessageDialog(this, "Soma máxima do caminho: " + maxSum);
             }
-        });
-        returnTimer.start();
+
+            if (!isReturning) {
+                if (tree[currentRow][currentCol] == '#') {
+                    // Quando atinge uma folha, pinta de verde e volta
+                    path[currentRow][currentCol] = 2;
+                    isReturning = true;
+                    repaint();
+                } else {
+                    // Marcar o caminho na ida (vermelho)
+                    path[currentRow][currentCol] = 1;
+                    repaint();
+
+                    // Adicionar os filhos na pilha (prioridade: esquerda, centro, direita)
+                    if (currentCol > 0 && isValidMove(currentRow - 1, currentCol - 1)) {
+                        dfsStack.push(new int[]{currentRow - 1, currentCol - 1, depth + 1});
+                    }
+                    if (isValidMove(currentRow - 1, currentCol)) {
+                        dfsStack.push(new int[]{currentRow - 1, currentCol, depth + 1});
+                    }
+                    if (currentCol < width - 1 && isValidMove(currentRow - 1, currentCol + 1)) {
+                        dfsStack.push(new int[]{currentRow - 1, currentCol + 1, depth + 1});
+                    }
+                }
+            }
+        } else {
+            // Quando a pilha está vazia, para a animação
+            stepTimer.stop();
+            JOptionPane.showMessageDialog(this, "Soma máxima do caminho: " + maxSum);
+        }
+    }
+
+    private boolean isValidMove(int row, int col) {
+        return row >= 0 && col >= 0 && col < width && tree[row][col] != ' ';
     }
 
     @Override
@@ -229,17 +234,20 @@ public class MonkeyTree extends JPanel {
         for (int i = 0; i < tree.length; i++) {
             for (int j = 0; j < tree[0].length; j++) {
                 if (tree[i][j] != ' ') {
-                    g.setColor(Color.WHITE);
-                    g.drawRect(xOffset + j * CELL_SIZE, yOffset + i * CELL_SIZE, CELL_SIZE, CELL_SIZE);
-                    g.drawString(Character.toString(tree[i][j]), xOffset + j * CELL_SIZE + 5, yOffset + i * CELL_SIZE + 15);
-
                     if (path[i][j] == 1) {
                         g.setColor(Color.RED);
                         g.fillRect(xOffset + j * CELL_SIZE, yOffset + i * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+                        g.setColor(Color.WHITE); // Pinta o caractere de preto quando em vermelho
                     } else if (path[i][j] == 2) {
                         g.setColor(Color.GREEN);
                         g.fillRect(xOffset + j * CELL_SIZE, yOffset + i * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+                        g.setColor(Color.BLACK); // Pinta o caractere de preto quando em verde
+                    } else {
+                        g.setColor(Color.WHITE);
                     }
+
+                    g.drawRect(xOffset + j * CELL_SIZE, yOffset + i * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+                    g.drawString(Character.toString(tree[i][j]), xOffset + j * CELL_SIZE + 5, yOffset + i * CELL_SIZE + 15);
                 }
             }
         }
