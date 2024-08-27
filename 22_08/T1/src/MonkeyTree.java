@@ -3,6 +3,7 @@
     // Fazer um botão que resete a árvore, para recomeçar a renderização
     // Fazer com que as folhas finais "#" não sejam pintadas de verde
     // Arrumar a questão de espaços vazios, que são considerados como caminho, que acontece a partir do "Caso60.txt"
+    // Arrumar a renderização do caminho com maior soma, pintar em laraja apenas o caminho correto
             package src;
 
             import javax.swing.*;
