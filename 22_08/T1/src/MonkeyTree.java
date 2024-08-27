@@ -1,5 +1,12 @@
 package src;
 
+            //if char == W, fazer algo parecido com if (tree[currentRow][currentCol] == '#') 
+            // No caso se for W, ele tenta ir para a esquerda primeiro, caso ele ja tenha pintado de verde, ele procura o caminho do meio, e caso ambos ja estiverem pintados, pega o caminho da direita
+            //No caso do V, ele também sempre prioriza o caminho da esquerda, e depois vai para o caminho a direita
+            // Fazer com que, o caminho com a maior soma, seja pintado de outra cor diferente (laranja)
+            // 
+
+
 import javax.swing.*;
 import java.awt.*;
 import java.io.BufferedReader;
@@ -18,7 +25,6 @@ public class MonkeyTree extends JPanel {
     private static final int CELL_SIZE = 20;
     private String statusMessage = "Analisando...";
     private int height, width;
-    private int[][] maxPathSums;
     private int maxSum;
     private int startRow, startCol;
 
@@ -113,7 +119,6 @@ public class MonkeyTree extends JPanel {
 
     public void startVisualization() {
         findStartingPoint();
-        calculateMaxPath(); // Preprocessa a árvore para calcular os valores máximos
 
         dfsStack = new Stack<>();
         dfsStack.push(new int[]{startRow, startCol, 0}); // Inicializa a pilha com a raiz (row, col, depth)
@@ -130,39 +135,6 @@ public class MonkeyTree extends JPanel {
                 currentRow = startRow;
                 currentCol = startCol;
                 return;
-            }
-        }
-    }
-
-    private void calculateMaxPath() {
-        maxPathSums = new int[height][width];
-        path = new int[height][width];
-        maxSum = 0;
-
-        for (int j = 0; j < width; j++) {
-            if (Character.isDigit(tree[height - 1][j])) {
-                maxPathSums[height - 1][j] = Character.getNumericValue(tree[height - 1][j]);
-            }
-        }
-
-        for (int i = height - 2; i >= 0; i--) {
-            for (int j = 0; j < width; j++) {
-                if (tree[i][j] == '/' || tree[i][j] == '\\' || tree[i][j] == '|' || tree[i][j] == 'V'
-                        || tree[i][j] == 'W') {
-                    int left = (j > 0) ? maxPathSums[i + 1][j - 1] : Integer.MIN_VALUE;
-                    int right = (j < width - 1) ? maxPathSums[i + 1][j + 1] : Integer.MIN_VALUE;
-                    int straight = maxPathSums[i + 1][j];
-
-                    maxPathSums[i][j] = Math.max(Math.max(left, right), straight);
-
-                    if (tree[i][j] == 'V' || tree[i][j] == 'W') {
-                        maxPathSums[i][j] += 1;
-                    }
-
-                    if (Character.isDigit(tree[i][j])) {
-                        maxPathSums[i][j] += Character.getNumericValue(tree[i][j]);
-                    }
-                }
             }
         }
     }
@@ -184,6 +156,9 @@ public class MonkeyTree extends JPanel {
                     isReturning = false; // Encontrou um caminho à direita, para de retornar
                 } else {
                     // Continua a voltar, pinta de verde
+                    if (Character.isDigit(tree[currentRow][currentCol])) {
+                        maxSum += Character.getNumericValue(tree[currentRow][currentCol]);
+                    }
                     path[currentRow][currentCol] = 2;
                     dfsStack.pop(); // Volta ao nó anterior
                     repaint();
@@ -198,18 +173,33 @@ public class MonkeyTree extends JPanel {
                     repaint();
                 } else {
                     // Marcar o caminho na ida (vermelho)
+                    if (Character.isDigit(tree[currentRow][currentCol]) && path[currentRow][currentCol] == 0) {
+                        maxSum += Character.getNumericValue(tree[currentRow][currentCol]);
+                    }
                     path[currentRow][currentCol] = 1;
                     repaint();
 
                     // Adicionar os filhos na pilha (prioridade: esquerda, centro, direita)
-                    if (currentCol > 0 && isValidMove(currentRow - 1, currentCol - 1)) {
+                    boolean moved = false;
+
+                    if (currentCol > 0 && isValidMove(currentRow - 1, currentCol - 1) && path[currentRow - 1][currentCol - 1] != 2) {
                         dfsStack.push(new int[]{currentRow - 1, currentCol - 1, depth + 1});
+                        moved = true;
                     }
-                    if (isValidMove(currentRow - 1, currentCol)) {
+
+                    if (isValidMove(currentRow - 1, currentCol) && path[currentRow - 1][currentCol] != 2) {
                         dfsStack.push(new int[]{currentRow - 1, currentCol, depth + 1});
+                        moved = true;
                     }
-                    if (currentCol < width - 1 && isValidMove(currentRow - 1, currentCol + 1)) {
+
+                    if (currentCol < width - 1 && isValidMove(currentRow - 1, currentCol + 1) && path[currentRow - 1][currentCol + 1] != 2) {
                         dfsStack.push(new int[]{currentRow - 1, currentCol + 1, depth + 1});
+                        moved = true;
+                    }
+
+                    if (!moved) {
+                        // Se não há movimento possível (todos os caminhos possíveis são verdes), volta
+                        isReturning = true;
                     }
                 }
             }
@@ -234,6 +224,9 @@ public class MonkeyTree extends JPanel {
         for (int i = 0; i < tree.length; i++) {
             for (int j = 0; j < tree[0].length; j++) {
                 if (tree[i][j] != ' ') {
+                    g.setColor(Color.WHITE);
+                    g.drawRect(xOffset + j * CELL_SIZE, yOffset + i * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+
                     if (path[i][j] == 1) {
                         g.setColor(Color.RED);
                         g.fillRect(xOffset + j * CELL_SIZE, yOffset + i * CELL_SIZE, CELL_SIZE, CELL_SIZE);
@@ -245,8 +238,6 @@ public class MonkeyTree extends JPanel {
                     } else {
                         g.setColor(Color.WHITE);
                     }
-
-                    g.drawRect(xOffset + j * CELL_SIZE, yOffset + i * CELL_SIZE, CELL_SIZE, CELL_SIZE);
                     g.drawString(Character.toString(tree[i][j]), xOffset + j * CELL_SIZE + 5, yOffset + i * CELL_SIZE + 15);
                 }
             }
