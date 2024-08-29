@@ -1,15 +1,13 @@
-// Aperfeiçoar o algoritimo DFS, pois ele está se perdendo múito facilmente
-// Arrumar o algoritimo para quando 
-// 28.08 -- Consegui arrumar parcialmente, ele na volta esta pegando números que tem a direita e a esquerda
+// Observações tiradas do víde que ajudaram na correção deste código:
+    // 
 
 
 // Criar um botão para resetar a árvore (recomeçar a renderização)
 // Criar um botão para pular a renderização, e retornar a árvoe completa e com a soma máxima correta e mostrando o caminho com maior soma de outra cor (laranja)
-// Arrumar a questão do desvio do ponteiro durante uma linha reta (volta)
+// Arrumar a renderização do caminho de maior soma, pois ele está pintando os quadradinhos errado
 // Arrumar que a partir do "Casob60.txt" ele está criando quadradinhos vazios
 // Mostrar status do andamentdo da árvore (Erro - Em Análise - Completo)
 // Tem um botão que leve até o ponteiro, caso esteja em andamento
-
 
 package src;
 
@@ -51,6 +49,13 @@ public class MonkeyTree extends JPanel {
         this.width = tree[0].length;
         this.currentSum = 0;
         this.maxSum = 0;
+
+        // Inicializando as pilhas para evitar NullPointerException
+        this.dfsStack = new Stack<>();
+        this.maxPathStack = new Stack<>();
+
+        // Configurando a fonte para suportar UTF-8 e caracteres especiais
+        setFont(new Font("SansSerif", Font.PLAIN, 12));
         setPreferredSize(new Dimension(tree[0].length * CELL_SIZE, tree.length * CELL_SIZE));
         setBackground(Color.BLACK);
     }
@@ -64,6 +69,22 @@ public class MonkeyTree extends JPanel {
                 JFrame frame = new JFrame("Monkey Tree Visualizer");
                 JScrollPane scrollPane = new JScrollPane(visualizer);
                 frame.add(scrollPane);
+
+                // Adicionando botões ao painel
+                JPanel panel = new JPanel();
+                JButton resetButton = new JButton("Resetar");
+                JButton skipButton = new JButton("Pular Renderização" );
+
+                // Garantindo que os botões também suportem UTF-8
+                resetButton.setFont(new Font("Arial", Font.PLAIN, 12));
+                skipButton.setFont(new Font("Arial", Font.PLAIN, 12));
+
+                resetButton.addActionListener(e -> visualizer.resetVisualization(selectedFile));
+                skipButton.addActionListener(e -> visualizer.skipVisualization());
+
+                panel.add(resetButton);
+                panel.add(skipButton);
+                frame.add(panel, BorderLayout.SOUTH);
 
                 frame.setExtendedState(JFrame.MAXIMIZED_BOTH); // Janela maximizada
                 frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -129,14 +150,57 @@ public class MonkeyTree extends JPanel {
     }
 
     public void startVisualization() {
+        resetState();  // Adicionando reset do estado inicial
         findStartingPoint();
         calculateMaxPath(); // Preprocessa a árvore para calcular os valores máximos
 
-        dfsStack = new Stack<>();
-        maxPathStack = new Stack<>();
         dfsStack.push(new int[]{startRow, startCol, 0}); // Inicializa a pilha com a raiz (row, col, depth)
         stepTimer = new javax.swing.Timer(200, e -> animateStep());
         stepTimer.start();
+    }
+
+    public void resetVisualization(String filePath) {
+        stepTimer.stop();
+        this.tree = readTreeFromFile(filePath);
+        resetState();
+        startVisualization();
+    }
+
+    public void skipVisualization() {
+        stepTimer.stop();
+        // Processa todo o DFS de uma vez
+        while (!dfsStack.isEmpty()) {
+            int[] pos = dfsStack.pop();
+            currentRow = pos[0];
+            currentCol = pos[1];
+            int depth = pos[2];
+            path[currentRow][currentCol] = 1;
+            if (Character.isDigit(tree[currentRow][currentCol])) {
+                currentSum += Character.getNumericValue(tree[currentRow][currentCol]);
+                if (currentSum > maxSum) {
+                    maxSum = currentSum;
+                    saveMaxPath();
+                }
+            }
+            if (attemptMove(currentRow, currentCol, 0, depth)) {
+                continue;
+            } else if (attemptMove(currentRow, currentCol, -1, depth)) {
+                continue;
+            } else if (attemptMove(currentRow, currentCol, 1, depth)) {
+                continue;
+            }
+        }
+        paintMaxPath(); // Pinta o caminho de maior valor de laranja
+        JOptionPane.showMessageDialog(this, "Soma máxima do caminho: " + maxSum);
+    }
+
+    private void resetState() {
+        this.path = new int[height][width];
+        this.currentSum = 0;
+        this.maxSum = 0;
+        dfsStack.clear();
+        maxPathStack.clear();
+        isReturning = false;
     }
 
     private void findStartingPoint() {
@@ -163,6 +227,7 @@ public class MonkeyTree extends JPanel {
             }
         }
 
+        // porque "//"? 
         for (int i = height - 2; i >= 0; i--) {
             for (int j = 0; j < width; j++) {
                 if (tree[i][j] == '/' || tree[i][j] == '\\' || tree[i][j] == '|' || tree[i][j] == 'V'
@@ -194,20 +259,20 @@ public class MonkeyTree extends JPanel {
     
             if (isReturning) {
                 // Verifica se há caminhos não explorados ao retornar
-                if (currentCol > 0 && isValidMove(currentRow - 1, currentCol - 1) && path[currentRow - 1][currentCol - 1] == 0) {
-                    isReturning = false; // Encontrou um caminho à esquerda, para de retornar
-                } else if (isValidMove(currentRow - 1, currentCol) && path[currentRow - 1][currentCol] == 0) {
-                    isReturning = false; // Encontrou um caminho em frente, para de retornar
-                } else if (currentCol < width - 1 && isValidMove(currentRow - 1, currentCol + 1) && path[currentRow - 1][currentCol + 1] == 0) {
-                    isReturning = false; // Encontrou um caminho à direita, para de retornar
-                } else {
-                    // Continua a voltar, pinta de verde
-                    if (Character.isDigit(tree[currentRow][currentCol])) {
-                        currentSum -= Character.getNumericValue(tree[currentRow][currentCol]);
+                if (tree[currentRow][currentCol] == 'V' || tree[currentRow][currentCol] == 'W') {
+                    if (attemptMove(currentRow, currentCol, -1, depth)) {
+                        isReturning = false; // Encontrou um caminho à esquerda, para de retornar
+                    } else if (attemptMove(currentRow, currentCol, 1, depth)) {
+                        isReturning = false; // Encontrou um caminho à direita, para de retornar
+                    } else if (attemptMove(currentRow, currentCol, 0, depth)) {
+                        isReturning = false; // Continua reto
+                    } else {
+                        // Continua a voltar, pinta de verde
+                        processReturning();
                     }
-                    path[currentRow][currentCol] = 2;
-                    dfsStack.pop(); // Volta ao nó anterior
-                    repaint();
+                } else {
+                    // Se é caminho reto, continua voltando sem explorar lateralmente
+                    processReturning();
                 }
             }
     
@@ -229,18 +294,14 @@ public class MonkeyTree extends JPanel {
                     }
                     repaint();
     
-                    // Adicionar os filhos na pilha (prioridade: esquerda, centro, direita)
+                    // Adicionar os filhos na pilha (prioridade: centro, esquerda, direita)
                     boolean moved = false;
     
-                    if (isValidMove(currentRow - 1, currentCol) && path[currentRow - 1][currentCol] != 2) {
-                        // Continuar reto se encontrar '|'
-                        dfsStack.push(new int[]{currentRow - 1, currentCol, depth + 1});
+                    if (attemptMove(currentRow, currentCol, 0, depth)) {
                         moved = true;
-                    } else if (currentCol > 0 && isValidMove(currentRow - 1, currentCol - 1) && path[currentRow - 1][currentCol - 1] != 2) {
-                        dfsStack.push(new int[]{currentRow - 1, currentCol - 1, depth + 1});
+                    } else if (attemptMove(currentRow, currentCol, -1, depth)) {
                         moved = true;
-                    } else if (currentCol < width - 1 && isValidMove(currentRow - 1, currentCol + 1) && path[currentRow - 1][currentCol + 1] != 2) {
-                        dfsStack.push(new int[]{currentRow - 1, currentCol + 1, depth + 1});
+                    } else if (attemptMove(currentRow, currentCol, 1, depth)) {
                         moved = true;
                     }
     
@@ -258,8 +319,30 @@ public class MonkeyTree extends JPanel {
         }
     
         // Atualiza o status da soma
-        statusMessage = "Soma atual: " + currentSum + " | Soma máxima atual: " + maxSum;
+        statusMessage = String.format("Soma atual: %d | Soma máxima atual: %d", currentSum, maxSum);
     }
+    
+    private boolean attemptMove(int row, int col, int direction, int depth) {
+        int newRow = row - 1;
+        int newCol = col + direction;
+
+        if (isValidMove(newRow, newCol) && path[newRow][newCol] == 0) {
+            dfsStack.push(new int[]{newRow, newCol, depth + 1});
+            return true;
+        }
+
+        return false;
+    }
+
+    private void processReturning() {
+        if (Character.isDigit(tree[currentRow][currentCol])) {
+            currentSum -= Character.getNumericValue(tree[currentRow][currentCol]);
+        }
+        path[currentRow][currentCol] = 2;
+        dfsStack.pop(); // Volta ao nó anterior
+        repaint();
+    }
+
     private void saveMaxPath() {
         maxPathStack.clear();
         for (int[] position : dfsStack) {
