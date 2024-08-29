@@ -1,6 +1,6 @@
 // Aperfeiçoar o algoritimo DFS, pois ele está se perdendo múito facilmente
 // Arrumar o algoritimo para quando 
-
+// 28.08 -- Consegui arrumar parcialmente, ele na volta esta pegando números que tem a direita e a esquerda
 
 
 // Criar um botão para resetar a árvore (recomeçar a renderização)
@@ -191,7 +191,7 @@ public class MonkeyTree extends JPanel {
             currentRow = pos[0];
             currentCol = pos[1];
             int depth = pos[2];
-
+    
             if (isReturning) {
                 // Verifica se há caminhos não explorados ao retornar
                 if (currentCol > 0 && isValidMove(currentRow - 1, currentCol - 1) && path[currentRow - 1][currentCol - 1] == 0) {
@@ -210,7 +210,7 @@ public class MonkeyTree extends JPanel {
                     repaint();
                 }
             }
-
+    
             if (!isReturning) {
                 if (tree[currentRow][currentCol] == '#') {
                     // Quando atinge uma folha, pinta de verde e volta
@@ -228,11 +228,12 @@ public class MonkeyTree extends JPanel {
                         }
                     }
                     repaint();
-
+    
                     // Adicionar os filhos na pilha (prioridade: esquerda, centro, direita)
                     boolean moved = false;
-
+    
                     if (isValidMove(currentRow - 1, currentCol) && path[currentRow - 1][currentCol] != 2) {
+                        // Continuar reto se encontrar '|'
                         dfsStack.push(new int[]{currentRow - 1, currentCol, depth + 1});
                         moved = true;
                     } else if (currentCol > 0 && isValidMove(currentRow - 1, currentCol - 1) && path[currentRow - 1][currentCol - 1] != 2) {
@@ -242,7 +243,7 @@ public class MonkeyTree extends JPanel {
                         dfsStack.push(new int[]{currentRow - 1, currentCol + 1, depth + 1});
                         moved = true;
                     }
-
+    
                     if (!moved) {
                         // Se não há movimento possível (todos os caminhos possíveis são verdes), volta
                         isReturning = true;
@@ -255,11 +256,10 @@ public class MonkeyTree extends JPanel {
             paintMaxPath(); // Pinta o caminho de maior valor de laranja
             JOptionPane.showMessageDialog(this, "Soma máxima do caminho: " + maxSum);
         }
-
+    
         // Atualiza o status da soma
         statusMessage = "Soma atual: " + currentSum + " | Soma máxima atual: " + maxSum;
     }
-
     private void saveMaxPath() {
         maxPathStack.clear();
         for (int[] position : dfsStack) {
