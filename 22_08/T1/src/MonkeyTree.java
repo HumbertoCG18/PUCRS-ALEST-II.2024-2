@@ -1,12 +1,7 @@
 // Observações tiradas do víde que ajudaram na correção deste código:
 
-// Acho que obrigatoriamente tem que usar busca por profundidade, mas fazer de alguma maneira que ele reconheça galhos sobrepostos
 
-
-
-// Criar um botão para pular a renderização, e retornar a árvoe completa e com a soma máxima correta e mostrando o caminho com maior soma de outra cor (laranja)
-// Criar um botãp de pausar a renderização,e que o mesmo botão seja o de retornar a renderização 
-// Arrumar a renderização do caminho de maior soma, pois ele está pintando os quadradinhos errado
+// Criar um botão de pausar a renderização,e que o mesmo botão seja o de retornar a renderização, ao invés do botão de Pular Renderização
 // Arrumar que a partir do "Casob60.txt" ele está criando quadradinhos vazios
 // Mostrar status do andamentdo da árvore (Erro - Em Análise - Completo)
 // Tem um botão que leve até o ponteiro, caso esteja em andamento (isto a partir do "Casob60.xtx")
@@ -169,7 +164,10 @@ public class MonkeyTree extends JPanel {
             int depth = pos[2];
             path[currentRow][currentCol] = 1;
             if (Character.isDigit(tree[currentRow][currentCol])) {
-                currentSum += Character.getNumericValue(tree[currentRow][currentCol]);
+                int value = Character.getNumericValue(tree[currentRow][currentCol]);
+                if (value > 0) {  // Ignorar valores negativos
+                    currentSum += value;
+                }
                 if (currentSum > maxSum) {
                     maxSum = currentSum;
                     saveMaxPath();
@@ -275,7 +273,10 @@ public class MonkeyTree extends JPanel {
                 } else {
                     path[currentRow][currentCol] = 1;
                     if (Character.isDigit(tree[currentRow][currentCol])) {
-                        currentSum += Character.getNumericValue(tree[currentRow][currentCol]);
+                        int value = Character.getNumericValue(tree[currentRow][currentCol]);
+                        if (value > 0) {  // Ignorar valores negativos
+                            currentSum += value;
+                        }
                         if (currentSum > maxSum) {
                             maxSum = currentSum;
                             saveMaxPath();
@@ -312,7 +313,10 @@ public class MonkeyTree extends JPanel {
     
     private void processReturning() {
         if (Character.isDigit(tree[currentRow][currentCol])) {
-            currentSum -= Character.getNumericValue(tree[currentRow][currentCol]);
+            int value = Character.getNumericValue(tree[currentRow][currentCol]);
+            if (value > 0) {  // Ignorar valores negativos
+                currentSum -= value;
+            }
         }
         path[currentRow][currentCol] = 2;
         dfsStack.pop();
@@ -339,8 +343,20 @@ public class MonkeyTree extends JPanel {
         int newCol = col;
         if (direction.equals("left")) {
             newCol = col - 1;
+            while (newRow >= 0 && (tree[newRow][newCol] == '|' || tree[newRow][newCol] == '/')) {
+                newRow--;
+                newCol--;
+            }
         } else if (direction.equals("right")) {
             newCol = col + 1;
+            while (newRow >= 0 && (tree[newRow][newCol] == '|' || tree[newRow][newCol] == '\\')) {
+                newRow--;
+                newCol++;
+            }
+        } else if (direction.equals("straight")) {
+            while (newRow >= 0 && (tree[newRow][newCol] == '\\' || tree[newRow][newCol] == '/')) {
+                newRow--;
+            }
         }
         return newCol >= 0 && newCol < width && isValidMove(newRow, newCol) && path[newRow][newCol] == 0;
     }
@@ -350,8 +366,20 @@ public class MonkeyTree extends JPanel {
         int newCol = col;
         if (direction.equals("left")) {
             newCol = col - 1;
+            while (newRow >= 0 && (tree[newRow][newCol] == '|' || tree[newRow][newCol] == '/')) {
+                newRow--;
+                newCol--;
+            }
         } else if (direction.equals("right")) {
             newCol = col + 1;
+            while (newRow >= 0 && (tree[newRow][newCol] == '|' || tree[newRow][newCol] == '\\')) {
+                newRow--;
+                newCol++;
+            }
+        } else if (direction.equals("straight")) {
+            while (newRow >= 0 && (tree[newRow][newCol] == '\\' || tree[newRow][newCol] == '/')) {
+                newRow--;
+            }
         }
         dfsStack.push(new int[]{newRow, newCol, depth + 1});
     }
@@ -395,3 +423,4 @@ public class MonkeyTree extends JPanel {
         g.drawString(statusMessage, 10, getHeight() - 10);
     }
 }
+
