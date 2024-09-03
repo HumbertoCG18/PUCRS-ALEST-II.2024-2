@@ -1,5 +1,8 @@
 // Observações tiradas do víde que ajudaram na correção deste código:
 
+// Acho que obrigatoriamente tem que usar busca por profundidade, mas fazer de alguma maneira que ele reconheça galhos sobrepostos
+
+
 
 // Criar um botão para pular a renderização, e retornar a árvoe completa e com a soma máxima correta e mostrando o caminho com maior soma de outra cor (laranja)
 // Criar um botãp de pausar a renderização,e que o mesmo botão seja o de retornar a renderização 
