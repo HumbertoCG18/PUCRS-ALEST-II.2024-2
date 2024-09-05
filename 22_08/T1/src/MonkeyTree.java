@@ -1,4 +1,6 @@
-// Tem que arrumar novamente o algoritimo de exploração, pois ele está mudando de direção mesmo sem um W ou V, uma possivel solução é que, ele só pode mudar de direção caso encontre um W ou um V, 
+// Tem que arrumar novamente o algoritimo de exploração, pois ele está mudando de direção mesmo sem um W ou V, uma possivel solução é que, ele só pode mudar de direção caso encontre um W ou um V. O problema que está acontecendo, é que, quando tem o ponteiro está em um número, e ele encontra outro numero a direita ou a esquerda, ele está mudando de direção para aonde esse numero está 
+// Fazer com que as informações que estão sendo atualizadas, fiquem mostrando no painel aonde tem os botões, na esquerda, ao invés da area de renderização
+// Fazer um checkbox, que, caso marcado, a "camera" siga o ponteiro enquanto ela se move 
 package src;
 
 import javax.swing.*;
@@ -16,7 +18,7 @@ public class MonkeyTree extends JPanel {
 
     private char[][] tree;
     private int[][] path;
-    private static final int CELL_SIZE = 20;
+    private static int CELL_SIZE = 20; // Tornado variável para controle de zoom
     private String statusMessage = "Soma atual: 0 | Soma máxima atual: 0";
     private String treeStatus = "Em Análise";
     private int height, width;
@@ -63,6 +65,8 @@ public class MonkeyTree extends JPanel {
                 JButton resetButton = new JButton("Resetar");
                 JButton pauseResumeButton = new JButton("Pausar");
                 JButton centerButton = new JButton("Centralizar no Ponteiro");
+                JButton zoomInButton = new JButton("+");
+                JButton zoomOutButton = new JButton("-");
 
                 resetButton.addActionListener(e -> visualizer.resetVisualization(selectedFile));
                 pauseResumeButton.addActionListener(e -> visualizer.togglePauseResume(pauseResumeButton));
@@ -72,12 +76,26 @@ public class MonkeyTree extends JPanel {
                 panel.add(pauseResumeButton);
                 panel.add(centerButton);
                 frame.add(panel, BorderLayout.SOUTH);
+                panel.add(zoomInButton);
+                panel.add(zoomOutButton);
 
                 frame.setExtendedState(JFrame.MAXIMIZED_BOTH);
                 frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
                 frame.setVisible(true);
 
                 visualizer.startVisualization();
+
+                                // Ações de zoom
+                                zoomInButton.addActionListener(e -> {
+                                    visualizer.zoomIn();
+                                    visualizer.revalidate();
+                                    visualizer.repaint();
+                                });
+                                zoomOutButton.addActionListener(e -> {
+                                    visualizer.zoomOut();
+                                    visualizer.revalidate();
+                                    visualizer.repaint();
+                                });
             }
         });
     }
@@ -447,5 +465,17 @@ public class MonkeyTree extends JPanel {
 
         g.setColor(Color.WHITE);
         g.drawString(statusMessage + " | Status da árvore: " + treeStatus, 10, getHeight() - 10);
+    }
+
+    public void zoomIn() {
+        CELL_SIZE += 5;
+        setPreferredSize(new Dimension(width * CELL_SIZE, height * CELL_SIZE));
+    }
+
+    public void zoomOut() {
+        if (CELL_SIZE > 5) {
+            CELL_SIZE -= 5;
+            setPreferredSize(new Dimension(width * CELL_SIZE, height * CELL_SIZE));
+        }
     }
 }
