@@ -20,7 +20,7 @@ public class MonkeyTree extends JPanel {
 
     private char[][] tree;
     private int[][] path;
-    private static final int CELL_SIZE = 20;
+    private static int CELL_SIZE = 20; // Tornado variável para controle de zoom
     private String statusMessage = "Soma atual: 0 | Soma máxima atual: 0";
     private String treeStatus = "Em Análise";
     private int height, width;
@@ -67,14 +67,33 @@ public class MonkeyTree extends JPanel {
                 JButton resetButton = new JButton("Resetar");
                 JButton pauseResumeButton = new JButton("Pausar");
                 JButton centerButton = new JButton("Centralizar no Ponteiro");
+                
+                // Botões de zoom
+                JButton zoomInButton = new JButton("+");
+                JButton zoomOutButton = new JButton("-");
 
                 resetButton.addActionListener(e -> visualizer.resetVisualization(selectedFile));
                 pauseResumeButton.addActionListener(e -> visualizer.togglePauseResume(pauseResumeButton));
                 centerButton.addActionListener(e -> visualizer.centerOnPointer(scrollPane));
 
+                // Ações de zoom
+                zoomInButton.addActionListener(e -> {
+                    visualizer.zoomIn();
+                    visualizer.revalidate();
+                    visualizer.repaint();
+                });
+                zoomOutButton.addActionListener(e -> {
+                    visualizer.zoomOut();
+                    visualizer.revalidate();
+                    visualizer.repaint();
+                });
+
                 panel.add(resetButton);
                 panel.add(pauseResumeButton);
                 panel.add(centerButton);
+                panel.add(zoomInButton);
+                panel.add(zoomOutButton);
+
                 frame.add(panel, BorderLayout.SOUTH);
 
                 frame.setExtendedState(JFrame.MAXIMIZED_BOTH);
@@ -240,10 +259,10 @@ public class MonkeyTree extends JPanel {
             currentRow = pos[0];
             currentCol = pos[1];
             int depth = pos[2];
-
+    
             if (isReturning) {
                 treeStatus = "Em Análise";  // Muda o status para "Em Análise" durante o retorno
-
+    
                 if (tree[currentRow][currentCol] == 'V') {
                     if (canMove(currentRow, currentCol, "left")) {
                         isReturning = false;
@@ -271,7 +290,7 @@ public class MonkeyTree extends JPanel {
                     processReturning();
                 }
             }
-
+    
             if (!isReturning) {
                 if (tree[currentRow][currentCol] == '#') {
                     path[currentRow][currentCol] = 2;
@@ -290,9 +309,10 @@ public class MonkeyTree extends JPanel {
                         }
                     }
                     repaint();
-
+    
                     boolean moved = false;
-
+    
+                    // Handle W priority: left, straight, right
                     if (tree[currentRow][currentCol] == 'W') {
                         if (canMove(currentRow, currentCol, "left")) {
                             move(currentRow, currentCol, depth, "left");
@@ -304,7 +324,9 @@ public class MonkeyTree extends JPanel {
                             move(currentRow, currentCol, depth, "right");
                             moved = true;
                         }
-                    } else if (tree[currentRow][currentCol] == 'V') {
+                    } 
+                    // Handle V priority: left, right
+                    else if (tree[currentRow][currentCol] == 'V') {
                         if (canMove(currentRow, currentCol, "left")) {
                             move(currentRow, currentCol, depth, "left");
                             moved = true;
@@ -312,7 +334,9 @@ public class MonkeyTree extends JPanel {
                             move(currentRow, currentCol, depth, "right");
                             moved = true;
                         }
-                    } else {
+                    } 
+                    // Standard movement: straight, left, right
+                    else {
                         if (canMove(currentRow, currentCol, "straight")) {
                             move(currentRow, currentCol, depth, "straight");
                             moved = true;
@@ -324,7 +348,7 @@ public class MonkeyTree extends JPanel {
                             moved = true;
                         }
                     }
-
+    
                     if (!moved) {
                         isReturning = true;
                     }
@@ -336,7 +360,7 @@ public class MonkeyTree extends JPanel {
             treeStatus = "Completo";
             JOptionPane.showMessageDialog(this, "Soma máxima do caminho: " + maxSum);
         }
-
+    
         statusMessage = String.format("Soma atual: %d | Soma máxima atual: %d", currentSum, maxSum);
     }
 
@@ -450,5 +474,17 @@ public class MonkeyTree extends JPanel {
 
         g.setColor(Color.WHITE);
         g.drawString(statusMessage + " | Status da árvore: " + treeStatus, 10, getHeight() - 10);
+    }
+
+    public void zoomIn() {
+        CELL_SIZE += 5;
+        setPreferredSize(new Dimension(width * CELL_SIZE, height * CELL_SIZE));
+    }
+
+    public void zoomOut() {
+        if (CELL_SIZE > 5) {
+            CELL_SIZE -= 5;
+            setPreferredSize(new Dimension(width * CELL_SIZE, height * CELL_SIZE));
+        }
     }
 }
