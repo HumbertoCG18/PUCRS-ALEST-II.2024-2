@@ -2,6 +2,8 @@
     "java.project.sourcePaths": [
         "22_08/_T1/MonkeyTree/src",
         "22_08/_T1/MonkeyTree",
-        "22_08/T1"
-    ]
+        "22_08/T1",
+        "Exemples"
+    ],
+    "java.project.referencedLibraries": []
 }

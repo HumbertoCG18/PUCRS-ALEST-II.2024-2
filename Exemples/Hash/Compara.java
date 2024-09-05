@@ -1,3 +1,5 @@
+package Hash;
+
 public class Compara {
 
     public static void main(String[] args) {

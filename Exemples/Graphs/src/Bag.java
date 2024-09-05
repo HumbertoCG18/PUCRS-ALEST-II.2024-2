@@ -1,3 +1,5 @@
+package Graphs.src;
+
 /******************************************************************************
  *  Compilation:  javac Bag.java
  *  Execution:    java Bag < input.txt
@@ -29,6 +31,9 @@
 
 import java.util.Iterator;
 import java.util.NoSuchElementException;
+
+import CriticalPath.StdIn;
+import CriticalPath.StdOut;
 
 /**
  *  The {@code Bag} class represents a bag (or multiset) of 

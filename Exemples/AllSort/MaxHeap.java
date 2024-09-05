@@ -1,3 +1,5 @@
+package AllSort;
+
 // MaxHeap.java
 public class MaxHeap {
 

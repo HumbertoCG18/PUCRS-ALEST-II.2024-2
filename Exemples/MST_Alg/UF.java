@@ -1,3 +1,8 @@
+package MST_Alg;
+
+import CriticalPath.StdIn;
+import CriticalPath.StdOut;
+
 /******************************************************************************
  *  Compilation:  javac UF.java
  *  Execution:    java UF < input.txt

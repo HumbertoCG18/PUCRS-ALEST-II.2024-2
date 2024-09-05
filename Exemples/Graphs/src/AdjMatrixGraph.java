@@ -1,3 +1,5 @@
+package Graphs.src;
+
 /******************************************************************************
  *  Compilation:  javac AdjMatrixGraph.java
  *  Execution:    java AdjMatrixGraph V E
@@ -10,6 +12,8 @@
 
 import java.util.Iterator;
 import java.util.NoSuchElementException;
+
+import CriticalPath.StdOut;
 
 
 public class AdjMatrixGraph {

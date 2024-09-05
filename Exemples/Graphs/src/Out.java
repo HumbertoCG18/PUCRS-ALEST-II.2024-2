@@ -1,3 +1,5 @@
+package Graphs.src;
+
 /******************************************************************************
  *  Compilation:  javac Out.java
  *  Execution:    java Out

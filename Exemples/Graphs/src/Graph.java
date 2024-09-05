@@ -1,3 +1,5 @@
+package Graphs.src;
+
 /******************************************************************************
  *  Compilation:  javac Graph.java        
  *  Execution:    java Graph input.txt
@@ -37,6 +39,9 @@
 import java.util.HashSet;
 import java.util.NoSuchElementException;
 import java.util.Set;
+
+import CriticalPath.In;
+import CriticalPath.StdOut;
 
 /**
  *  The {@code Graph} class represents an undirected graph of vertices

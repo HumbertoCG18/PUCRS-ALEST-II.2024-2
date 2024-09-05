@@ -1,3 +1,5 @@
+package CriticalPath;
+
 /******************************************************************************
  *  Compilation:  javac DirectedEdge.java
  *  Execution:    java DirectedEdge

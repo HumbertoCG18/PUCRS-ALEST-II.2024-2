@@ -1,3 +1,5 @@
+package Graphs.src;
+
 /******************************************************************************
  *  Compilation:  javac Stack.java
  *  Execution:    java Stack < input.txt
@@ -21,6 +23,9 @@
 
 import java.util.Iterator;
 import java.util.NoSuchElementException;
+
+import CriticalPath.StdIn;
+import CriticalPath.StdOut;
 
 /**
  *  The {@code Stack} class represents a last-in-first-out (LIFO) stack of generic items.

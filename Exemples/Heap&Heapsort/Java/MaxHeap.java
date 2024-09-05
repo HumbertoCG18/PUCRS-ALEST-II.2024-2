@@ -14,9 +14,11 @@ public class MaxHeap {
     v = values;
     size = values.length;
   }
-
+  @SuppressWarnings("unused")
   private int left ( int i )   { return 2 * i; }
+  @SuppressWarnings("unused")
   private int right ( int i )  { return 2 * i + 1; }
+  @SuppressWarnings("unused")
   private int parent ( int i ) { return i / 2; }
 
   private void swim ( int k ) {

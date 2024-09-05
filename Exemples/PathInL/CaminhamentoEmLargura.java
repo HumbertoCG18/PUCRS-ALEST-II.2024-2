@@ -1,85 +1,94 @@
-// import java.util.ArrayDeque;
-// import java.util.Queue;
+package PathInL;
 
-// public class CaminhamentoEmLargura{
-//     private int [] edgeTo;
-//     private int [] distTo;
-//     private boolean [] marked;
-//     private int s;
+import java.util.ArrayDeque;
+import java.util.Queue;
 
-//     public CaminhamentoEmLargura(Graph g, int ref) {
-//         this.s=ref;
-//         edgeTo=new int [g.V()];
-//         distTo=new int [g.V()];
-//         marked=new boolean [g.V()];
-//         bfs(g,s);
-//     }
+import CriticalPath.Bag;
+import CriticalPath.In;
+import CriticalPath.StdOut;
+import Graphs.src.Graph;
 
-//     private void bfs(Graph g, int ref) {
-//         Queue<Integer> q = new ArrayDeque<Integer>();
-//         q.add(ref);        
-//         distTo[ref]=0;        
-//         marked[ref]=true;
-//         while(!q.isEmpty()){
-//             int aux = q.remove();            
+public class CaminhamentoEmLargura{
+    private int [] edgeTo;
+    private int [] distTo;
+    private boolean [] marked;
+    private int s;
 
-//             if(aux!=edgeTo[aux])
-//                 distTo[aux]=distTo[edgeTo[aux]]+1;
+    public CaminhamentoEmLargura(Graph g, int ref) {
+        this.s=ref;
+        edgeTo=new int [g.V()];
+        distTo=new int [g.V()];
+        marked=new boolean [g.V()];
+        bfs(g,s);
+    }
 
-//             for(int adj: g.adj(aux))
-//                 if(!marked[adj]){
-//                     marked[adj]=true;
-//                     edgeTo[adj]=aux;
-//                     q.add(adj);
-//                 }
-//         }
+    private void bfs(Graph g, int ref) {
+        Queue<Integer> q = new ArrayDeque<Integer>();
+        q.add(ref);        
+        distTo[ref]=0;        
+        marked[ref]=true;
+        while(!q.isEmpty()){
+            int aux = q.remove();            
 
-//     }
+            if(aux!=edgeTo[aux])
+                distTo[aux]=distTo[edgeTo[aux]]+1;
 
-//     public boolean hasPath(int v){
-//         return marked[v];
-//     }
+            for(int adj: g.adj(aux))
+                if(!marked[adj]){
+                    marked[adj]=true;
+                    edgeTo[adj]=aux;
+                    q.add(adj);
+                }
+        }
 
-//     public Iterable<Integer> pathTo(int v){
-//         if(!marked[v]) return null;
+    }
 
-//         Bag b = new Bag();
-//         b.add(v);
-//         while(v!=edgeTo[v]){
-//             v=edgeTo[v];
-//             b.add(v);
-//         }
-//         return b;
+    public boolean hasPath(int v){
+        return marked[v];
+    }
 
-//     }
+    @SuppressWarnings("unchecked")
+    public Iterable<Integer> pathTo(int v){
+        if(!marked[v]) return null;
 
-//     public static void main(String[] args) {
-//         In in = new In(args[0]);
-//         Graph G = new Graph(in);
-//         StdOut.println(G);
-//         StdOut.println();
-//         StdOut.println(G.toDot());
+        @SuppressWarnings("rawtypes")
+        Bag b = new Bag();
+        b.add(v);
+        while(v!=edgeTo[v]){
+            v=edgeTo[v];
+            b.add(v);
+        }
+        return b;
 
-//         System.out.println("Estou na classe Caminhamento Em Profundidade...");
+    }
 
-//         CaminhamentoEmLargura cep = new CaminhamentoEmLargura(G, 0);
-//         System.out.println("Existe um caminho para o 3? "+(cep.hasPath(3)?"SIM":"NÃO"));
-//         if(cep.hasPath(3)){
-//             for(int p: cep.pathTo(3))
-//                 System.out.print(p+"; ");
-//             System.out.println();
-//         }
+    public static void main(String[] args) {
+        In in = new In(args[0]);
+        Graph G = new Graph(in);
+        StdOut.println(G);
+        StdOut.println();
+        StdOut.println(G.toDot());
+
+        System.out.println("Estou na classe Caminhamento Em Profundidade...");
+
+        CaminhamentoEmLargura cep = new CaminhamentoEmLargura(G, 0);
+        System.out.println("Existe um caminho para o 3? "+(cep.hasPath(3)?"SIM":"NÃO"));
+        if(cep.hasPath(3)){
+            for(int p: cep.pathTo(3))
+                System.out.print(p+"; ");
+            System.out.println();
+        }
             
-//         System.out.println("Existe um caminho para o 4? "+(cep.hasPath(4)?"SIM":"NÃO"));
-//         if(cep.hasPath(4)){
-//             for(int p: cep.pathTo(4))
-//                 System.out.print(p+"; ");
-//             System.out.println();
-//         }
+        System.out.println("Existe um caminho para o 4? "+(cep.hasPath(4)?"SIM":"NÃO"));
+        if(cep.hasPath(4)){
+            for(int p: cep.pathTo(4))
+                System.out.print(p+"; ");
+            System.out.println();
+        }
             
 
-//     }
+    }
 
 
 
-// }
+}

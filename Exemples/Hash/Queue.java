@@ -1,3 +1,5 @@
+package Hash;
+
 /******************************************************************************
  *  Compilation:  javac Queue.java
  *  Execution:    java Queue < input.txt
