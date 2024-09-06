@@ -1,3 +1,5 @@
+// Quando pular um nodo ja visto, que ele possa o caminho de um número, e assim, continuar o caminho esperado até uma #
+
 package src;
 
 import javax.swing.*;
