@@ -6,6 +6,8 @@
 // Corrigir ainda mais o algoritimo de movimentação, pois em alguns momentos ele ainda se perde
 // A partir do caso 150, ele está indo para a direita inesperadamente, mesmo que ele passou por um V anterirmente
 // Isso acontece também no caso 90, quando tem dois números seguidos
+// Fazer com que o ponteiro volte em um #, mesmo que tenha mais caminhos a frente
+
 
 package src;
 
@@ -290,6 +292,64 @@ public class MonkeyTree extends JPanel {
         }
     }
 
+    
+    private void findStartingPoint() {
+        for (int col = 0; col < width; col++) {
+            if (tree[height - 1][col] == '|') {
+                startRow = height - 1;
+                startCol = col;
+                currentRow = startRow;
+                currentCol = startCol;
+                return;
+            }
+        }
+        // Se começar com 'W' na raiz, use isso como ponto de partida
+        for (int col = 0; col < width; col++) {
+            if (tree[height - 1][col] == 'W') {
+                startRow = height - 1;
+                startCol = col;
+                currentRow = startRow;
+                currentCol = startCol;
+                return;
+            }
+        }
+    }
+
+    private boolean foundAnotherVW(String direction) {
+        int newRow = currentRow - 1;
+        int newCol = currentCol;
+    
+        if (direction.equals("left")) {
+            newCol = currentCol - 1;
+            while (newRow >= 0 && newCol >= 0 && tree[newRow][newCol] != ' ') {
+                if (tree[newRow][newCol] == 'V' || tree[newRow][newCol] == 'W') {
+                    return true;
+                }
+                newRow--;
+                newCol--;
+            }
+        } else if (direction.equals("right")) {
+            newCol = currentCol + 1;
+            while (newRow >= 0 && newCol < width && tree[newRow][newCol] != ' ') {
+                if (tree[newRow][newCol] == 'V' || tree[newRow][newCol] == 'W') {
+                    return true;
+                }
+                newRow--;
+                newCol++;
+            }
+        } else if (direction.equals("straight")) {
+            while (newRow >= 0 && tree[newRow][newCol] != ' ') {
+                if (tree[newRow][newCol] == 'V' || tree[newRow][newCol] == 'W') {
+                    return true;
+                }
+                newRow--;
+            }
+        }
+    
+        return false;
+    }
+    
+
     private void animateStep() {
         if (!dfsStack.isEmpty()) {
             int[] pos = dfsStack.peek();
@@ -316,7 +376,41 @@ public class MonkeyTree extends JPanel {
                 repaint();
     
                 boolean moved = false;
-    
+                if (tree[currentRow][currentCol] == '#') {
+                    logDebug("Encontrado '#', iniciando backtracking.");
+                    isReturning = true; // Força o retorno ao encontrar '#'
+                    processReturning();
+                    return; // Não continue explorando
+                }
+                
+                if (tree[currentRow][currentCol] == 'W') {
+                    logDebug("Encontrado 'W', aplicando lógica de mudança.");
+                    
+                    // **Prioridade para 'W': Esquerda -> Meio -> Direita**
+                    // Verifica se há outro 'V' ou 'W' no caminho antes de mudar
+                    if (canMove(currentRow, currentCol, "left") && !foundAnotherVW("left")) {
+                        move(currentRow, currentCol, depth, "left");
+                        moved = true;
+                    } else if (canMove(currentRow, currentCol, "straight") && !foundAnotherVW("straight")) {
+                        move(currentRow, currentCol, depth, "straight");
+                        moved = true;
+                    } else if (canMove(currentRow, currentCol, "right") && !foundAnotherVW("right")) {
+                        move(currentRow, currentCol, depth, "right");
+                        moved = true;
+                    }
+                } else if (tree[currentRow][currentCol] == 'V') {
+                    logDebug("Encontrado 'V', aplicando lógica de mudança.");
+                    
+                    // Prioridade para 'V': Esquerda -> Direita
+                    if (canMove(currentRow, currentCol, "left") && !foundAnotherVW("left")) {
+                        move(currentRow, currentCol, depth, "left");
+                        moved = true;
+                    } else if (canMove(currentRow, currentCol, "right") && !foundAnotherVW("right")) {
+                        move(currentRow, currentCol, depth, "right");
+                        moved = true;
+                    }
+                }
+
                 // Primeiro tenta seguir em frente (explorar profundidade)
                 if (tree[currentRow][currentCol] == 'W') {
                     logDebug("Encontrado 'W', aplicando lógica de mudança.");
@@ -413,29 +507,6 @@ public class MonkeyTree extends JPanel {
             paintMaxPath();
         }
         updateStatusMessage();
-    }
-    
-   
-    private void findStartingPoint() {
-        for (int col = 0; col < width; col++) {
-            if (tree[height - 1][col] == '|') {
-                startRow = height - 1;
-                startCol = col;
-                currentRow = startRow;
-                currentCol = startCol;
-                return;
-            }
-        }
-        // Se começar com 'W' na raiz, use isso como ponto de partida
-        for (int col = 0; col < width; col++) {
-            if (tree[height - 1][col] == 'W') {
-                startRow = height - 1;
-                startCol = col;
-                currentRow = startRow;
-                currentCol = startCol;
-                return;
-            }
-        }
     }
 
 private boolean canMove(int row, int col, String direction) {
