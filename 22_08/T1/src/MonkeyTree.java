@@ -7,7 +7,7 @@
 // Fazer com que o ponteiro volte em um #, mesmo que tenha mais caminhos a frente
 // Fazer alguma maneira de otimizar este código, remover métodos redundantes, melhorar a presição do algoritimo de busca de profundidade
 // Fazer com que, quando a renderização termine, apareça um pop-up dizendo a soma máxima, e perguntando se quer fazer a renderização de uma nova árvore, se clicar em sim, aparece um novo dialog para escolher qual arquivo que será renderizado
-
+// Arrumar o método para seguir a camera, isso será util em árvores maiores
 package src;
 
 import javax.swing.*;
@@ -22,45 +22,42 @@ import java.util.*;
 
 public class MonkeyTree extends JPanel {
 
-    private char[][] tree;
-    private int[][] path;
-    private static int CELL_SIZE = 20; // Tornado variável para controle de zoom
-    private String treeStatus = "Em Analise";
-    private int height, width;
-    private int[][] maxPathSums;
-    private int maxSum;
-    private int startRow, startCol;
+  private char[][] tree;  // Representação da árvore
+    private int[][] path;  // Caminho percorrido
+    private static int CELL_SIZE = 20; // Tamanho da célula (controla o zoom)
+    private String treeStatus = "Em Análise";  // Status atual da árvore
+    private int height, width;  // Altura e largura da árvore
+    private int[][] maxPathSums;  // Armazena as somas máximas dos caminhos
+    private int maxSum;  // Armazena o valor da soma máxima
+    private int startRow, startCol;  // Posição inicial da exploração
+    private int currentRow, currentCol;  // Posição atual do explorador
+    private int currentSum;  // Soma acumulada ao percorrer o caminho
 
-    private int currentRow;
-    private int currentCol;
-    private int currentSum;
+    private javax.swing.Timer stepTimer;  // Timer para controlar os passos de exploração
+    private Stack<int[]> dfsStack;  // Pilha usada no algoritmo de DFS (Depth-First Search)
+    private Stack<int[]> maxPathStack;  // Pilha para armazenar o caminho máximo
+    private boolean isReturning = false;  // Flag para indicar se está em modo de backtracking
+    private boolean isPaused = false;  // Flag para pausar ou retomar a exploração
 
-    private javax.swing.Timer stepTimer;
-    private Stack<int[]> dfsStack;
-    private Stack<int[]> maxPathStack;
-    private boolean isReturning = false;
-    private boolean isPaused = false;
-
-    // Novo componente para acompanhar a câmera
-    private JCheckBox followPointerCheckBox;
-    private JLabel statusLabel;  // Label para mostrar o status atualizado
+    private JCheckBox followPointerCheckBox;  // Checkbox para seguir o ponteiro na exploração
+    private JLabel statusLabel;  // Label para exibir o status da exploração
     
     // Debug Log Components
-    private JButton debugButton;
-    private JFrame debugFrame;
-    private JTextArea debugTextArea;
-    private List<String> debugLogs;
+    private JButton debugButton;  // Botão para abrir o log de depuração
+    private JFrame debugFrame;  // Frame para mostrar o log de depuração
+    private JTextArea debugTextArea;  // Área de texto para exibir o log de depuração
+    private List<String> debugLogs;  // Lista que armazena o log de depuração
 
     public MonkeyTree(String filePath) {
-        this.tree = readTreeFromFile(filePath);
-        this.path = new int[tree.length][tree[0].length];
-        this.height = tree.length;
-        this.width = tree[0].length;
+        this.tree = readTreeFromFile(filePath); // Lê a árvore do arquivo
+        this.path = new int[tree.length][tree[0].length]; // Inicializa a matriz de caminho
+        this.height = tree.length; // Define a altura da árvore
+        this.width = tree[0].length; // Define a largura da árvore
         this.currentSum = 0;
         this.maxSum = 0;
 
-        this.dfsStack = new Stack<>();
-        this.maxPathStack = new Stack<>();
+        this.dfsStack = new Stack<>();  // Inicializa a pilha de DFS
+        this.maxPathStack = new Stack<>();  // Inicializa a pilha de caminho máximo
 
         setPreferredSize(new Dimension(tree[0].length * CELL_SIZE, tree.length * CELL_SIZE));
         setBackground(Color.BLACK);
