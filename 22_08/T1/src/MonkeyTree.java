@@ -3,10 +3,7 @@
     // Debugger.java == Toda a lógica do debugger
     // Só fazer isso quando todo o código estiver funcionando 100% 
 
-// Corrigir ainda mais o algoritimo de movimentação, pois em alguns momentos ele ainda se perde
-// A partir do caso 150, ele está indo para a direita inesperadamente, mesmo que ele passou por um V anterirmente
-// Isso acontece também no caso 90, quando tem dois números seguidos 
-// 
+// Está ocorrendo a mudança da direção por conda de que existem galhos muitos próximos uns dos outros, e isso não pode ser um problema, porque quanto maior a árvore, isso acontecerá com mais frequencia, e mais vezes. Tem que se pensar alguma maneira de arrumar este problema.
 
 package src;
 
@@ -44,8 +41,9 @@ public class MonkeyTree extends JPanel {
 
     // Novo componente para acompanhar a câmera
     private JCheckBox followPointerCheckBox;
-    private JLabel statusLabel;  // Label para mostrar o status atualizado
-    
+    // Label para mostrar o status atualizado
+    private JLabel statusLabel; 
+
     // Debug Log Components
     private JButton debugButton;
     private JFrame debugFrame;
@@ -69,7 +67,7 @@ public class MonkeyTree extends JPanel {
         // Inicializa o checkbox e a label de status
         followPointerCheckBox = new JCheckBox("Seguir Ponteiro");
         statusLabel = new JLabel("Soma atual: 0 | Soma maxima atual: 0 | Status da arvore: Em Analise");
-        
+
         // Debug log initialization
         debugLogs = new ArrayList<>();
         debugTextArea = new JTextArea(20, 50);
@@ -89,24 +87,27 @@ public class MonkeyTree extends JPanel {
                 frame.add(scrollPane);
 
                 JPanel panel = new JPanel(new BorderLayout());
-                
+
                 // Criando um sub-painel para os botões e o status
                 JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
                 JButton resetButton = new JButton("Resetar");
                 JButton pauseResumeButton = new JButton("Pausar");
                 JButton zoomInButton = new JButton("+");
                 JButton zoomOutButton = new JButton("-");
-                
+
                 buttonPanel.add(resetButton);
                 buttonPanel.add(pauseResumeButton);
                 buttonPanel.add(zoomInButton);
                 buttonPanel.add(zoomOutButton);
-                buttonPanel.add(visualizer.debugButton); // Adiciona o botão Debug Log
-                
+                // Adiciona o botão Debug Log
+                buttonPanel.add(visualizer.debugButton); 
+
                 // Painel para a esquerda onde aparecerá o status e o checkbox
                 JPanel statusPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-                statusPanel.add(visualizer.followPointerCheckBox);  // Adiciona o checkbox
-                statusPanel.add(visualizer.statusLabel);  // Adiciona a label de status
+                // Adiciona o checkbox
+                statusPanel.add(visualizer.followPointerCheckBox);
+                // Adiciona a label de status
+                statusPanel.add(visualizer.statusLabel); 
 
                 // Adiciona o painel de status à esquerda e os botões no centro
                 panel.add(statusPanel, BorderLayout.WEST);
@@ -131,7 +132,7 @@ public class MonkeyTree extends JPanel {
                     visualizer.revalidate();
                     visualizer.repaint();
                 });
-                
+
                 // Botões de controle
                 resetButton.addActionListener(e -> visualizer.resetVisualization(selectedFile));
                 pauseResumeButton.addActionListener(e -> visualizer.togglePauseResume(pauseResumeButton));
@@ -198,7 +199,7 @@ public class MonkeyTree extends JPanel {
         findStartingPoint();
         calculateMaxPath();
 
-        dfsStack.push(new int[]{startRow, startCol, 0});
+        dfsStack.push(new int[] { startRow, startCol, 0 });
         stepTimer = new javax.swing.Timer(200, e -> animateStep());
         stepTimer.start();
     }
@@ -256,10 +257,11 @@ public class MonkeyTree extends JPanel {
     }
 
     private void updateStatusMessage() {
-        statusLabel.setText(String.format("Soma atual: %d | Soma maxima atual: %d | Status da arvore: %s", currentSum, maxSum, treeStatus));
+        statusLabel.setText(String.format("Soma atual: %d | Soma maxima atual: %d | Status da arvore: %s", currentSum,
+                maxSum, treeStatus));
     }
 
-        private void calculateMaxPath() {
+    private void calculateMaxPath() {
         maxPathSums = new int[height][width];
         path = new int[height][width];
         maxSum = 0;
@@ -298,13 +300,13 @@ public class MonkeyTree extends JPanel {
             currentRow = pos[0];
             currentCol = pos[1];
             int depth = pos[2];
-    
+
             logDebug(String.format("Posicao atual: (%d, %d), Soma atual: %d", currentRow, currentCol, currentSum));
-    
+
             // Explorando um novo caminho
             if (!isReturning) {
                 path[currentRow][currentCol] = 1;
-    
+
                 // Atualiza a soma quando encontra um número
                 if (Character.isDigit(tree[currentRow][currentCol])) {
                     int value = Character.getNumericValue(tree[currentRow][currentCol]);
@@ -316,21 +318,19 @@ public class MonkeyTree extends JPanel {
                         saveMaxPath();
                     }
                 }
-    
                 repaint();
-    
                 boolean moved = false;
-    
+
                 // Resetando a prioridade se encontrar um 'W'
                 if (tree[currentRow][currentCol] == 'W') {
                     logDebug("Encontrado 'W', reiniciando logica de mudanca.");
                     moved = resetDirectionPriority("W", currentRow, currentCol, depth);
-    
-                // Resetando a prioridade se encontrar um 'V'
+
+                    // Resetando a prioridade se encontrar um 'V'
                 } else if (tree[currentRow][currentCol] == 'V') {
                     logDebug("Encontrado 'V', reiniciando logica de mudanca.");
                     moved = resetDirectionPriority("V", currentRow, currentCol, depth);
-    
+
                 } else if (canMove(currentRow, currentCol, "straight")) {
                     // Tenta seguir em frente
                     move(currentRow, currentCol, depth, "straight");
@@ -344,20 +344,21 @@ public class MonkeyTree extends JPanel {
                     move(currentRow, currentCol, depth, "left");
                     moved = true;
                 }
-    
+
                 // Se não conseguiu se mover, inicia o retorno
                 if (!moved) {
                     isReturning = true;
                 }
-    
-            } else { // Processo de retorno/backtracking (sem reset de direção)
+
+            } else {
+                // Processo de retorno/backtracking (sem reset de direção)
                 treeStatus = "Em Analise";
                 logDebug("Retornando...");
-    
+
                 // Backtracking normal: não aplicar o reset aqui
                 if (tree[currentRow][currentCol] == 'W') {
                     logDebug(String.format("Retornando de %c", tree[currentRow][currentCol]));
-    
+
                     // Prioridade para 'W' no backtracking: segue o comportamento padrão sem reset
                     if (canMove(currentRow, currentCol, "left")) {
                         move(currentRow, currentCol, depth, "left");
@@ -371,10 +372,10 @@ public class MonkeyTree extends JPanel {
                     } else {
                         processReturning();
                     }
-    
+
                 } else if (tree[currentRow][currentCol] == 'V') {
                     logDebug(String.format("Retornando de %c", tree[currentRow][currentCol]));
-    
+
                     // Prioridade para 'V' no backtracking: segue o comportamento padrão sem reset
                     if (canMove(currentRow, currentCol, "left")) {
                         move(currentRow, currentCol, depth, "left");
@@ -385,59 +386,57 @@ public class MonkeyTree extends JPanel {
                     } else {
                         processReturning();
                     }
-    
+
                 } else {
                     processReturning();
                 }
             }
-    
         } else {
             paintMaxPath();
         }
         updateStatusMessage();
     }
-    
 
-private boolean resetDirectionPriority(String letter, int row, int col, int depth) {
-    boolean moved = false;
+    private boolean resetDirectionPriority(String letter, int row, int col, int depth) {
+        boolean moved = false;
 
-    if (letter.equals("W")) {
-        // Reiniciando a prioridade de direção para 'W'
-        logDebug(String.format("Reiniciando prioridade em W na posicao (%d, %d)", row, col));
+        if (letter.equals("W")) {
+            // Reiniciando a prioridade de direção para 'W'
+            logDebug(String.format("Reiniciando prioridade em W na posicao (%d, %d)", row, col));
 
-        // Prioridade para 'W': Esquerda -> Reto -> Direita
-        if (canMove(row, col, "left")) {
-            logDebug(String.format("Movendo para a esquerda de W em (%d, %d)", row, col));
-            move(row, col, depth, "left");
-            moved = true;
-        } else if (canMove(row, col, "straight")) {
-            logDebug(String.format("Movendo para frente de W em (%d, %d)", row, col));
-            move(row, col, depth, "straight");
-            moved = true;
-        } else if (canMove(row, col, "right")) {
-            logDebug(String.format("Movendo para a direita de W em (%d, %d)", row, col));
-            move(row, col, depth, "right");
-            moved = true;
+            // Prioridade para 'W': Esquerda -> Reto -> Direita
+            if (canMove(row, col, "left")) {
+                logDebug(String.format("Movendo para a esquerda de W em (%d, %d)", row, col));
+                move(row, col, depth, "left");
+                moved = true;
+            } else if (canMove(row, col, "straight")) {
+                logDebug(String.format("Movendo para frente de W em (%d, %d)", row, col));
+                move(row, col, depth, "straight");
+                moved = true;
+            } else if (canMove(row, col, "right")) {
+                logDebug(String.format("Movendo para a direita de W em (%d, %d)", row, col));
+                move(row, col, depth, "right");
+                moved = true;
+            }
+
+        } else if (letter.equals("V")) {
+            // Reiniciando a prioridade de direção para 'V'
+            logDebug(String.format("Reiniciando prioridade em V na posicao (%d, %d)", row, col));
+
+            // Prioridade para 'V': Esquerda -> Direita
+            if (canMove(row, col, "left")) {
+                logDebug(String.format("Movendo para a esquerda de V em (%d, %d)", row, col));
+                move(row, col, depth, "left");
+                moved = true;
+            } else if (canMove(row, col, "right")) {
+                logDebug(String.format("Movendo para a direita de V em (%d, %d)", row, col));
+                move(row, col, depth, "right");
+                moved = true;
+            }
         }
 
-    } else if (letter.equals("V")) {
-        // Reiniciando a prioridade de direção para 'V'
-        logDebug(String.format("Reiniciando prioridade em V na posicao (%d, %d)", row, col));
-
-        // Prioridade para 'V': Esquerda -> Direita
-        if (canMove(row, col, "left")) {
-            logDebug(String.format("Movendo para a esquerda de V em (%d, %d)", row, col));
-            move(row, col, depth, "left");
-            moved = true;
-        } else if (canMove(row, col, "right")) {
-            logDebug(String.format("Movendo para a direita de V em (%d, %d)", row, col));
-            move(row, col, depth, "right");
-            moved = true;
-        }
+        return moved;
     }
-
-    return moved;
-}
 
     private void findStartingPoint() {
         for (int col = 0; col < width; col++) {
@@ -464,58 +463,65 @@ private boolean resetDirectionPriority(String letter, int row, int col, int dept
     private boolean canMove(int row, int col, String direction) {
         int newRow = row - 1;
         int newCol = col;
-    
+
         if (direction.equals("left")) {
             newCol = col - 1;
-            while (newRow >= 0 && newCol >= 0 && (path[newRow][newCol] != 0 || tree[newRow][newCol] == '|' || tree[newRow][newCol] == '/')) {
+            while (newRow >= 0 && newCol >= 0
+                    && (path[newRow][newCol] != 0 || tree[newRow][newCol] == '|' || tree[newRow][newCol] == '/')) {
                 newRow--;
                 newCol--;
             }
         } else if (direction.equals("right")) {
             newCol = col + 1;
-            while (newRow >= 0 && newCol < width && (path[newRow][newCol] != 0 || tree[newRow][newCol] == '|' || tree[newRow][newCol] == '\\')) {
+            while (newRow >= 0 && newCol < width
+                    && (path[newRow][newCol] != 0 || tree[newRow][newCol] == '|' || tree[newRow][newCol] == '\\')) {
                 newRow--;
                 newCol++;
             }
         } else if (direction.equals("straight")) {
-            while (newRow >= 0 && (path[newRow][newCol] != 0 || tree[newRow][newCol] == '\\' || tree[newRow][newCol] == '/')) {
+            while (newRow >= 0
+                    && (path[newRow][newCol] != 0 || tree[newRow][newCol] == '\\' || tree[newRow][newCol] == '/')) {
                 newRow--;
             }
         }
-    
+
         return newCol >= 0 && newCol < width && newRow >= 0 && isValidMove(newRow, newCol) && path[newRow][newCol] == 0;
     }
-    
-private void move(int row, int col, int depth, String direction) {
-    int newRow = row - 1;
-    int newCol = col;
 
-    if (direction.equals("left")) {
-        newCol = col - 1;
-        // Pula células já visitadas ou não válidas até encontrar um número ou uma célula válida
-        while (newRow >= 0 && newCol >= 0 && (path[newRow][newCol] != 0 || tree[newRow][newCol] == '|' || tree[newRow][newCol] == '/')) {
-            newRow--;
-            newCol--;
+    private void move(int row, int col, int depth, String direction) {
+        int newRow = row - 1;
+        int newCol = col;
+
+        if (direction.equals("left")) {
+            newCol = col - 1;
+            // Pula células já visitadas ou não válidas até encontrar um número ou uma célula válida
+            while (newRow >= 0 && newCol >= 0
+                    && (path[newRow][newCol] != 0 || tree[newRow][newCol] == '|' || tree[newRow][newCol] == '/')) {
+                newRow--;
+                newCol--;
+            }
+        } else if (direction.equals("right")) {
+            newCol = col + 1;
+            // Pula células já visitadas ou não válidas até encontrar um número ou uma célula válida
+            while (newRow >= 0 && newCol < width
+                    && (path[newRow][newCol] != 0 || tree[newRow][newCol] == '|' || tree[newRow][newCol] == '\\')) {
+                newRow--;
+                newCol++;
+            }
+        } else if (direction.equals("straight")) {
+            // Pula células já visitadas ou não válidas até encontrar um número ou uma célula válida
+            while (newRow >= 0
+                    && (path[newRow][newCol] != 0 || tree[newRow][newCol] == '\\' || tree[newRow][newCol] == '/')) {
+                newRow--;
+            }
         }
-    } else if (direction.equals("right")) {
-        newCol = col + 1;
-        // Pula células já visitadas ou não válidas até encontrar um número ou uma célula válida
-        while (newRow >= 0 && newCol < width && (path[newRow][newCol] != 0 || tree[newRow][newCol] == '|' || tree[newRow][newCol] == '\\')) {
-            newRow--;
-            newCol++;
-        }
-    } else if (direction.equals("straight")) {
-        // Pula células já visitadas ou não válidas até encontrar um número ou uma célula válida
-        while (newRow >= 0 && (path[newRow][newCol] != 0 || tree[newRow][newCol] == '\\' || tree[newRow][newCol] == '/')) {
-            newRow--;
+
+        // Verifica se o novo caminho oferece um benefício (não pula números)
+        if (newRow >= 0 && newCol >= 0 && newCol < width
+                && (path[newRow][newCol] == 0 || Character.isDigit(tree[newRow][newCol]))) {
+            dfsStack.push(new int[] { newRow, newCol, depth + 1 });
         }
     }
-
-    // Verifica se o novo caminho oferece um benefício (não pula números)
-    if (newRow >= 0 && newCol >= 0 && newCol < width && (path[newRow][newCol] == 0 || Character.isDigit(tree[newRow][newCol]))) {
-        dfsStack.push(new int[]{newRow, newCol, depth + 1});
-    }
-}
 
     private boolean isValidMove(int row, int col) {
         return row >= 0 && col >= 0 && col < width && tree[row][col] != ' ';
@@ -536,7 +542,7 @@ private void move(int row, int col, int depth, String direction) {
     private void saveMaxPath() {
         maxPathStack.clear();
         for (int[] position : dfsStack) {
-            maxPathStack.push(new int[]{position[0], position[1]});
+            maxPathStack.push(new int[] { position[0], position[1] });
         }
     }
 
@@ -593,7 +599,8 @@ private void move(int row, int col, int depth, String direction) {
                         g.fillRect(xOffset + j * CELL_SIZE, yOffset + i * CELL_SIZE, CELL_SIZE, CELL_SIZE);
                         g.setColor(Color.BLACK);
                     }
-                    g.drawString(Character.toString(tree[i][j]), xOffset + j * CELL_SIZE + 5, yOffset + i * CELL_SIZE + 15);
+                    g.drawString(Character.toString(tree[i][j]), xOffset + j * CELL_SIZE + 5,
+                            yOffset + i * CELL_SIZE + 15);
                 }
             }
         }
