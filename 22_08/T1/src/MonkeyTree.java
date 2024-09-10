@@ -3,11 +3,10 @@
     // Debugger.java == Toda a lógica do debugger
     // Só fazer isso quando todo o código estiver funcionando 100% 
 
-// Corrigir ainda mais o algoritimo de movimentação, pois em alguns momentos ele ainda se perde
-// A partir do caso 150, ele está indo para a direita inesperadamente, mesmo que ele passou por um V anterirmente
-// Isso acontece também no caso 90, quando tem dois números seguidos
+// A partir do caso 150, ele está indo para a direita inesperadamente, mesmo que ele passou por um V anteriormente, isso acontece também no caso 90, quando tem dois números seguidos
 // Fazer com que o ponteiro volte em um #, mesmo que tenha mais caminhos a frente
-
+// Fazer alguma maneira de otimizar este código, remover métodos redundantes, melhorar a presição do algoritimo de busca de profundidade
+// Fazer com que, quando a renderização termine, apareça um pop-up dizendo a soma máxima, e perguntando se quer fazer a renderização de uma nova árvore, se clicar em sim, aparece um novo dialog para escolher qual arquivo que será renderizado
 
 package src;
 
