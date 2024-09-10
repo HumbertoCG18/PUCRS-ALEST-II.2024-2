@@ -19,7 +19,6 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
-
 public class MonkeyTree extends JPanel {
 
   private char[][] tree;  // Representação da árvore
@@ -73,7 +72,6 @@ public class MonkeyTree extends JPanel {
         debugButton = new JButton("Debug Log");
         debugButton.addActionListener(e -> showDebugLog());
     }
-
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
             String selectedFile = selectFileDialog();
@@ -288,7 +286,6 @@ public class MonkeyTree extends JPanel {
         }
     }
 
-    
     private void findStartingPoint() {
         for (int col = 0; col < width; col++) {
             if (tree[height - 1][col] == '|') {
@@ -345,7 +342,6 @@ public class MonkeyTree extends JPanel {
         return false;
     }
     
-
     private void animateStep() {
         if (!dfsStack.isEmpty()) {
             int[] pos = dfsStack.peek();
