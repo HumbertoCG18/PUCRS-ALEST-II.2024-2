@@ -1,3 +1,4 @@
+
 package src;
 
 import javax.swing.*;
@@ -310,13 +311,12 @@ public class MonkeyTree extends JPanel {
             currentRow = pos[0];
             currentCol = pos[1];
             int depth = pos[2];
-
+    
             logDebug(String.format("Posicao atual: (%d, %d), Soma atual: %d", currentRow, currentCol, currentSum));
-
-            // Explorando um novo caminho
+    
             if (!isReturning) {
                 path[currentRow][currentCol] = 1;
-
+    
                 // Atualiza a soma quando encontra um número
                 if (Character.isDigit(tree[currentRow][currentCol])) {
                     int value = Character.getNumericValue(tree[currentRow][currentCol]);
@@ -328,7 +328,7 @@ public class MonkeyTree extends JPanel {
                         saveMaxPath();
                     }
                 }
-
+    
                 // Se encontrar o ponto final '#', iniciar o backtracking
                 if (tree[currentRow][currentCol] == '#') {
                     logDebug("Encontrou o ponto final '#'. Iniciando backtracking.");
@@ -336,57 +336,46 @@ public class MonkeyTree extends JPanel {
                 } else {
                     repaint();
                     boolean moved = false;
-
+    
                     // Verificando e priorizando 'V' e 'W'
                     if (tree[currentRow][currentCol] == 'W') {
                         logDebug("Encontrado 'W', reiniciando lógica de mudança.");
                         moved = resetDirectionPriority("W", currentRow, currentCol, depth);
-
+    
                     } else if (tree[currentRow][currentCol] == 'V') {
                         logDebug("Encontrado 'V', reiniciando lógica de mudança.");
                         moved = resetDirectionPriority("V", currentRow, currentCol, depth);
-
+    
                     } else if (canMove(currentRow, currentCol, "straight")) {
                         // Tenta seguir em frente
                         move(currentRow, currentCol, depth, "straight");
                         moved = true;
-
-                    } else if (canMove(currentRow, currentCol, "right")) {
-                        // Explora pela direita
-                        move(currentRow, currentCol, depth, "right");
-                        moved = true;
-
-                    } else if (canMove(currentRow, currentCol, "left")) {
-                        // Explora pela esquerda
-                        move(currentRow, currentCol, depth, "left");
-                        moved = true;
                     }
-
-                    // Se não conseguiu se mover e não encontrou '#', **não inicia o backtracking**
+    
+                    // Se não conseguiu se mover, inicia o retorno
                     if (!moved) {
-                        logDebug("Sem movimentos disponíveis, não há caminhos restantes nesta célula.");
+                        logDebug("Iniciando retorno, nenhum caminho disponível.");
+                        isReturning = true;
                     }
                 }
-
+    
             } else {
                 // Processo de retorno/backtracking
                 logDebug("Retornando...");
                 treeStatus = "Em Analise";
-
-                // Prioridade de movimentação no retorno
+    
+                // Ao retornar, verifica se todas as direções foram exploradas
                 if (tree[currentRow][currentCol] == 'W' || tree[currentRow][currentCol] == 'V') {
-                    logDebug(String.format("Retornando de %s na posicao (%d, %d)", tree[currentRow][currentCol],
-                            currentRow, currentCol));
-
-                    // Prioridade: esquerda -> meio -> direita no retorno
+                    logDebug(String.format("Retornando de %s na posicao (%d, %d)", tree[currentRow][currentCol], currentRow, currentCol));
+    
                     if (canMove(currentRow, currentCol, "left")) {
                         move(currentRow, currentCol, depth, "left");
                         isReturning = false;
-                    } else if (canMove(currentRow, currentCol, "straight")) {
-                        move(currentRow, currentCol, depth, "straight");
-                        isReturning = false;
                     } else if (canMove(currentRow, currentCol, "right")) {
                         move(currentRow, currentCol, depth, "right");
+                        isReturning = false;
+                    } else if (canMove(currentRow, currentCol, "straight")) {
+                        move(currentRow, currentCol, depth, "straight");
                         isReturning = false;
                     } else {
                         processReturning();
@@ -401,8 +390,7 @@ public class MonkeyTree extends JPanel {
         }
         updateStatusMessage();
     }
-
-
+    
     private void findStartingPoint() {
         for (int col = 0; col < width; col++) {
             if (tree[height - 1][col] == '|') {
