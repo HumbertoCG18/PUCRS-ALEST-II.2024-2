@@ -429,14 +429,16 @@ public class MonkeyTree extends JPanel {
         int newRow = row - 1;
         int newCol = col;
     
-        if (direction.equals("left")) {
-            newCol = col - 1;
-            while (newRow >= 0 && newCol >= 0
-                    && (path[newRow][newCol] != 0 || tree[newRow][newCol] == '|' || tree[newRow][newCol] == '/')) {
-                newRow--;
-                newCol--;
-            }
-        } else if (direction.equals("right")) {
+if (direction.equals("left")) {
+    newCol = col - 1;
+    while (newRow >= 0 && newCol >= 0
+            && (path[newRow][newCol] != 0 
+            || (tree[newRow][newCol] != 'V' && tree[newRow][newCol] != '\\' 
+            && (tree[newRow][newCol] == '|' || tree[newRow][newCol] == '/')))) {
+        newRow--;
+        newCol--;
+    }
+}else if (direction.equals("right")) {
             newCol = col + 1;
             while (newRow >= 0 && newCol < width
                     && (path[newRow][newCol] != 0 || tree[newRow][newCol] == '|' || tree[newRow][newCol] == '\\')) {
