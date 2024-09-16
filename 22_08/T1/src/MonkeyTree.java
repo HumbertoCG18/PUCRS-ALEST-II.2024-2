@@ -1,3 +1,5 @@
+// Ao invés de usar matrizes, usarei Grafos para fazer uma abordagem mais dinamica, rápida e recursiva. 
+
 package src;
 
 import javax.swing.*;
@@ -573,5 +575,10 @@ private boolean isValidMove(int row, int col) {
             }
         }
         g.setColor(Color.WHITE);
+    }
+
+    public void startTraversal() {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'startTraversal'");
     }
 }
