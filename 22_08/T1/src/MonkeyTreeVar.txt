@@ -1,0 +1,43 @@
+[{
+	"resource": "/C:/Users/humbe/OneDrive/Documentos/GitHub/PUCRS-ALEST-II.2024-2/22_08/T1/src/MonkeyTree.java",
+	"owner": "_generated_diagnostic_collection_name_#1",
+	"code": "570425421",
+	"severity": 4,
+	"message": "The value of the field MonkeyTree.stepTimer is not used",
+	"source": "Java",
+	"startLineNumber": 25,
+	"startColumn": 31,
+	"endLineNumber": 25,
+	"endColumn": 40,
+	"tags": [
+		1
+	]
+},{
+	"resource": "/C:/Users/humbe/OneDrive/Documentos/GitHub/PUCRS-ALEST-II.2024-2/22_08/T1/src/MonkeyTree.java",
+	"owner": "_generated_diagnostic_collection_name_#1",
+	"code": "570425421",
+	"severity": 4,
+	"message": "The value of the field MonkeyTree.isReturning is not used",
+	"source": "Java",
+	"startLineNumber": 26,
+	"startColumn": 21,
+	"endLineNumber": 26,
+	"endColumn": 32,
+	"tags": [
+		1
+	]
+},{
+	"resource": "/C:/Users/humbe/OneDrive/Documentos/GitHub/PUCRS-ALEST-II.2024-2/22_08/T1/src/MonkeyTree.java",
+	"owner": "_generated_diagnostic_collection_name_#1",
+	"code": "603979894",
+	"severity": 4,
+	"message": "The method updateStatusMessage() from the type MonkeyTree is never used locally",
+	"source": "Java",
+	"startLineNumber": 199,
+	"startColumn": 18,
+	"endLineNumber": 199,
+	"endColumn": 39,
+	"tags": [
+		1
+	]
+}]

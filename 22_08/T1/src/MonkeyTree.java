@@ -186,7 +186,7 @@ public class MonkeyTree extends JPanel {
         findStartingPoint();
         calculateMaxPath();
 
-        dfsStack.push(new int[]{startRow, startCol, 0});
+        dfsStack.push(new int[] { startRow, startCol, 0 });
         stepTimer = new javax.swing.Timer(200, e -> animateStep());
         stepTimer.start();
     }
@@ -292,20 +292,20 @@ public class MonkeyTree extends JPanel {
                 logDebug(String.format("Movendo para a esquerda de %s na posicao (%d, %d)", letter, row, col));
                 move(row, col, depth, "left");
                 moved = true;
-            } else if (canMove(row, col, "right")) {
-                logDebug(String.format("Movendo para a direita de %s na posicao (%d, %d)", letter, row, col));
-                move(row, col, depth, "right");
-                moved = true;
-            } else if (canMove(row, col, "straight")) {
+            } else if (!moved && canMove(row, col, "straight")) {
                 logDebug(String.format("Seguindo reto de %s na posicao (%d, %d)", letter, row, col));
                 move(row, col, depth, "straight");
+                moved = true;
+            } else if (!moved && canMove(row, col, "right")) {
+                logDebug(String.format("Movendo para a direita de %s na posicao (%d, %d)", letter, row, col));
+                move(row, col, depth, "right");
                 moved = true;
             }
         }
     
         return moved;
     }
-    
+
     private void animateStep() {
         if (!dfsStack.isEmpty()) {
             int[] pos = dfsStack.peek();
@@ -404,7 +404,6 @@ public class MonkeyTree extends JPanel {
         updateStatusMessage();
     }
 
-
     private void findStartingPoint() {
         for (int col = 0; col < width; col++) {
             if (tree[height - 1][col] == '|') {
@@ -426,47 +425,17 @@ public class MonkeyTree extends JPanel {
             }
         }
     }
-        
-    private boolean canMove(int row, int col, String direction) {
-        int newRow = row - 1;
-        int newCol = col;
-    
-if (direction.equals("left")) {
-    newCol = col - 1;
-    while (newRow >= 0 && newCol >= 0
-            && (path[newRow][newCol] != 0 
-            || (tree[newRow][newCol] != 'V' && tree[newRow][newCol] != '\\' 
-            && (tree[newRow][newCol] == '|' || tree[newRow][newCol] == '/')))) {
-        newRow--;
-        newCol--;
-    }
-}else if (direction.equals("right")) {
-            newCol = col + 1;
-            while (newRow >= 0 && newCol < width
-                    && (path[newRow][newCol] != 0 || tree[newRow][newCol] == '|' || tree[newRow][newCol] == '\\')) {
-                newRow--;
-                newCol++;
-            }
-        } else if (direction.equals("straight")) {
-            while (newRow >= 0
-                    && (path[newRow][newCol] != 0 || tree[newRow][newCol] == '\\' || tree[newRow][newCol] == '/')) {
-                newRow--;
-            }
-        }
-    
-        // Garantir que só mova para uma célula válida
-        return newCol >= 0 && newCol < width && newRow >= 0 && isValidMove(newRow, newCol) && path[newRow][newCol] == 0;
-    }
-    
 
-    private void move(int row, int col, int depth, String direction) {
+    private boolean canMove(int row, int col, String direction) {
         int newRow = row - 1;
         int newCol = col;
 
         if (direction.equals("left")) {
             newCol = col - 1;
             while (newRow >= 0 && newCol >= 0
-                    && (path[newRow][newCol] != 0 || tree[newRow][newCol] == '|' || tree[newRow][newCol] == '/')) {
+                    && (path[newRow][newCol] != 0
+                            || (tree[newRow][newCol] != 'V' && tree[newRow][newCol] != '\\'
+                                    && (tree[newRow][newCol] == '|' || tree[newRow][newCol] == '/')))) {
                 newRow--;
                 newCol--;
             }
@@ -484,16 +453,47 @@ if (direction.equals("left")) {
             }
         }
 
-        if (newRow >= 0 && newCol >= 0 && newCol < width && path[newRow][newCol] == 0) {
-            dfsStack.push(new int[]{newRow, newCol, depth + 1});
-        }
+        // Garantir que só mova para uma célula válida
+        return newCol >= 0 && newCol < width && newRow >= 0 && isValidMove(newRow, newCol) && path[newRow][newCol] == 0;
     }
 
-// Função para verificar se o movimento é válido
-private boolean isValidMove(int row, int col) {
-    // Adiciona verificação para ignorar células vazias
-    return row >= 0 && col >= 0 && col < width && tree[row][col] != ' ' && tree[row][col] != '\0';
+ 
+private void move(int row, int col, int depth, String direction) {
+    int newRow = row - 1;
+    int newCol = col;
+
+    // Lógica correta para cada direção
+    if (direction.equals("left")) {
+        // Diminui row e col ao ir para a esquerda
+        newCol = col - 1;
+        newRow = row - 1;
+        logDebug(String.format("Movendo para a esquerda: Novo row: %d, Novo col: %d", newRow, newCol));
+        
+    } else if (direction.equals("right")) {
+        // Diminui row e aumenta col ao ir para a direita
+        newCol = col + 1;
+        newRow = row - 1;
+        logDebug(String.format("Movendo para a direita: Novo row: %d, Novo col: %d", newRow, newCol));
+
+    } else if (direction.equals("straight")) {
+        // Diminui apenas row ao seguir reto
+        newRow = row - 1;
+        logDebug(String.format("Seguindo reto: Novo row: %d, Col permanece: %d", newRow, newCol));
+    }
+
+    // Verifica se o movimento é válido e atualiza a pilha DFS
+    if (newRow >= 0 && newCol >= 0 && newCol < width && path[newRow][newCol] == 0) {
+        dfsStack.push(new int[]{newRow, newCol, depth + 1});
+    } else {
+        logDebug(String.format("Movimento inválido: Row: %d, Col: %d", newRow, newCol));
+    }
 }
+
+    // Função para verificar se o movimento é válido
+    private boolean isValidMove(int row, int col) {
+        // Adiciona verificação para ignorar células vazias
+        return row >= 0 && col >= 0 && col < width && tree[row][col] != ' ' && tree[row][col] != '\0';
+    }
 
     private void processReturning() {
         if (Character.isDigit(tree[currentRow][currentCol])) {
@@ -510,7 +510,7 @@ private boolean isValidMove(int row, int col) {
     private void saveMaxPath() {
         maxPathStack.clear();
         for (int[] position : dfsStack) {
-            maxPathStack.push(new int[]{position[0], position[1]});
+            maxPathStack.push(new int[] { position[0], position[1] });
         }
     }
 
@@ -543,10 +543,10 @@ private boolean isValidMove(int row, int col) {
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
-    
+
         int xOffset = (getWidth() - tree[0].length * CELL_SIZE) / 2;
         int yOffset = (getHeight() - tree.length * CELL_SIZE) / 2;
-    
+
         for (int i = 0; i < tree.length; i++) {
             for (int j = 0; j < tree[0].length; j++) {
                 if (tree[i][j] == ' ' || tree[i][j] == '\0') {
@@ -556,7 +556,7 @@ private boolean isValidMove(int row, int col) {
                 } else {
                     g.setColor(Color.WHITE);
                     g.drawRect(xOffset + j * CELL_SIZE, yOffset + i * CELL_SIZE, CELL_SIZE, CELL_SIZE);
-    
+
                     if (path[i][j] == 1) {
                         g.setColor(Color.RED);
                         g.fillRect(xOffset + j * CELL_SIZE, yOffset + i * CELL_SIZE, CELL_SIZE, CELL_SIZE);
@@ -570,15 +570,11 @@ private boolean isValidMove(int row, int col) {
                         g.fillRect(xOffset + j * CELL_SIZE, yOffset + i * CELL_SIZE, CELL_SIZE, CELL_SIZE);
                         g.setColor(Color.BLACK);
                     }
-                    g.drawString(Character.toString(tree[i][j]), xOffset + j * CELL_SIZE + 5, yOffset + i * CELL_SIZE + 15);
+                    g.drawString(Character.toString(tree[i][j]), xOffset + j * CELL_SIZE + 5,
+                            yOffset + i * CELL_SIZE + 15);
                 }
             }
         }
         g.setColor(Color.WHITE);
-    }
-
-    public void startTraversal() {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'startTraversal'");
     }
 }
