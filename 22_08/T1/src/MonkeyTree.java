@@ -279,39 +279,6 @@ public class MonkeyTree extends JPanel {
         }
     }
 
-    private boolean resetDirectionPriority(String letter, int row, int col, int depth) {
-        boolean moved = false;
-
-        logDebug(String.format("Reiniciando prioridade em %s na posição (%d, %d)", letter, row, col));
-
-        // Reinicia a lógica de movimentação ao encontrar "W" ou "V"
-        // Prioridade para "W": esquerda -> reta -> direita
-        if (letter.equals("W")) {
-            if (canMove(row, col, "left")) {
-                move(row, col, depth, "left");
-                moved = true;
-            } else if (canMove(row, col, "straight")) {
-                move(row, col, depth, "straight");
-                moved = true;
-            } else if (canMove(row, col, "right")) {
-                move(row, col, depth, "right");
-                moved = true;
-            }
-        }
-        // Prioridade para "V": esquerda -> direita
-        else if (letter.equals("V")) {
-            if (canMove(row, col, "left")) {
-                move(row, col, depth, "left");
-                moved = true;
-            } else if (canMove(row, col, "right")) {
-                move(row, col, depth, "right");
-                moved = true;
-            }
-        }
-
-        return moved;
-    }
-
     private void animateStep() {
         if (!dfsStack.isEmpty()) {
             int[] pos = dfsStack.peek();
@@ -347,11 +314,11 @@ public class MonkeyTree extends JPanel {
 
                     // Verificando e priorizando 'V' e 'W'
                     if (tree[currentRow][currentCol] == 'W') {
-                        logDebug("Encontrado 'W', reiniciando lógica de mudança.");
+                        logDebug("Encontrado 'W', reiniciando logica de mudanca.");
                         moved = resetDirectionPriority("W", currentRow, currentCol, depth);
 
                     } else if (tree[currentRow][currentCol] == 'V') {
-                        logDebug("Encontrado 'V', reiniciando lógica de mudança.");
+                        logDebug("Encontrado 'V', reiniciando logica de mudanca.");
                         moved = resetDirectionPriority("V", currentRow, currentCol, depth);
 
                     } else if (canMove(currentRow, currentCol, "straight")) {
@@ -372,7 +339,7 @@ public class MonkeyTree extends JPanel {
 
                     // Se não conseguiu se mover e não encontrou '#', não inicia o backtracking
                     if (!moved) {
-                        logDebug("Sem movimentos disponíveis, não há caminhos restantes nesta célula.");
+                        logDebug("Sem movimentos disponiveis, não ha caminhos restantes nesta celula.");
                         isReturning = true;
                     }
                 }
@@ -411,15 +378,48 @@ public class MonkeyTree extends JPanel {
         updateStatusMessage();
     }
 
+    private boolean resetDirectionPriority(String letter, int row, int col, int depth) {
+        boolean moved = false;
+    
+        logDebug(String.format("Reiniciando prioridade em %s na posicao (%d, %d)", letter, row, col));
+    
+        // Reinicia a lógica de movimentação ao encontrar "W" ou "V"
+        // Prioridade para "W": esquerda -> reta -> direita
+        if (letter.equals("W")) {
+            if (canMove(row, col, "left")) {
+                move(row, col, depth, "left");
+                moved = true;
+            } else if (canMove(row, col, "straight")) {
+                move(row, col, depth, "straight");
+                moved = true;
+            } else if (canMove(row, col, "right")) {
+                move(row, col, depth, "right");
+                moved = true;
+            }
+        }
+        // Prioridade para "V": esquerda -> direita
+        else if (letter.equals("V")) {
+            if (canMove(row, col, "left")) {
+                move(row, col, depth, "left");
+                moved = true;
+            } else if (canMove(row, col, "right")) {
+                move(row, col, depth, "right");
+                moved = true;
+            }
+        }
+    
+        return moved;
+    }
+    
     private boolean canMove(int row, int col, String direction) {
         int newRow = row - 1;
         int newCol = col;
-
+    
         if (direction.equals("left")) {
             // Movendo para a diagonal esquerda, ignorando "|" e "/"
             newCol = col - 1;
             while (newRow >= 0 && newCol >= 0
-                    && (path[newRow][newCol] != 0 || tree[newRow][newCol] == '|' || tree[newRow][newCol] == '/')) {
+                    && (path[newRow][newCol] != 0 || tree[newRow][newCol] == '|' || tree[newRow][newCol] == '/' || Character.isDigit(tree[newRow][newCol]))) {
                 newRow--;
                 newCol--;
             }
@@ -427,66 +427,66 @@ public class MonkeyTree extends JPanel {
             // Movendo para a diagonal direita, ignorando "|" e "\"
             newCol = col + 1;
             while (newRow >= 0 && newCol < width
-                    && (path[newRow][newCol] != 0 || tree[newRow][newCol] == '|' || tree[newRow][newCol] == '\\')) {
+                    && (path[newRow][newCol] != 0 || tree[newRow][newCol] == '|' || tree[newRow][newCol] == '\\' || Character.isDigit(tree[newRow][newCol]))) {
                 newRow--;
                 newCol++;
             }
         } else if (direction.equals("straight")) {
             // Movendo reto, ignorando "\" e "/"
             while (newRow >= 0
-                    && (path[newRow][newCol] != 0 || tree[newRow][newCol] == '\\' || tree[newRow][newCol] == '/')) {
+                    && (path[newRow][newCol] != 0 || tree[newRow][newCol] == '\\' || tree[newRow][newCol] == '/' || Character.isDigit(tree[newRow][newCol]))) {
                 newRow--;
             }
         }
-
+    
         // Garantir que só mova para uma célula válida
         return newCol >= 0 && newCol < width && newRow >= 0 && isValidMove(newRow, newCol) && path[newRow][newCol] == 0;
     }
-
+    
     private void move(int row, int col, int depth, String direction) {
         int newRow = row - 1;
         int newCol = col;
-
+    
         if (direction.equals("left")) {
             // Movendo para a diagonal esquerda
             newCol = col - 1;
             logDebug(String.format("Movendo para a esquerda: Novo row: %d, Novo col: %d", newRow, newCol));
-
-            // Pular casas "|" e "/" se forem encontradas
-            while (newRow >= 0 && newCol >= 0 && (tree[newRow][newCol] == '|' || tree[newRow][newCol] == '/')) {
+    
+            // Pular casas "|" e "/" ou números já analisados se forem encontradas
+            while (newRow >= 0 && newCol >= 0 && (tree[newRow][newCol] == '|' || tree[newRow][newCol] == '/' || Character.isDigit(tree[newRow][newCol]))) {
                 newRow--;
                 newCol--;
             }
-
+    
         } else if (direction.equals("right")) {
             // Movendo para a diagonal direita
             newCol = col + 1;
             logDebug(String.format("Movendo para a direita: Novo row: %d, Novo col: %d", newRow, newCol));
-
-            // Pular casas "|" e "\" se forem encontradas
-            while (newRow >= 0 && newCol < width && (tree[newRow][newCol] == '|' || tree[newRow][newCol] == '\\')) {
+    
+            // Pular casas "|" e "\" ou números já analisados se forem encontradas
+            while (newRow >= 0 && newCol < width && (tree[newRow][newCol] == '|' || tree[newRow][newCol] == '\\' || Character.isDigit(tree[newRow][newCol]))) {
                 newRow--;
                 newCol++;
             }
-
+    
         } else if (direction.equals("straight")) {
             // Movendo reto
             logDebug(String.format("Seguindo reto: Novo row: %d, Col permanece: %d", newRow, newCol));
-
-            // Pular casas "\" e "/" se forem encontradas
-            while (newRow >= 0 && (tree[newRow][newCol] == '\\' || tree[newRow][newCol] == '/')) {
+    
+            // Pular casas "\" e "/" ou números já analisados se forem encontradas
+            while (newRow >= 0 && (tree[newRow][newCol] == '\\' || tree[newRow][newCol] == '/' || Character.isDigit(tree[newRow][newCol]))) {
                 newRow--;
             }
         }
-
+    
         // Verifica se o movimento é válido e atualiza a pilha DFS
         if (newRow >= 0 && newCol >= 0 && newCol < width && path[newRow][newCol] == 0) {
             dfsStack.push(new int[] { newRow, newCol, depth + 1 });
         } else {
-            logDebug(String.format("Movimento inválido: Row: %d, Col: %d", newRow, newCol));
+            logDebug(String.format("Movimento invalido: Row: %d, Col: %d", newRow, newCol));
         }
     }
-
+    
     private void findStartingPoint() {
         for (int col = 0; col < width; col++) {
             if (tree[height - 1][col] == '|') {
