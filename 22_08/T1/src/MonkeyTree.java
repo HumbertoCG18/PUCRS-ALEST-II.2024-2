@@ -1,3 +1,8 @@
+// Juntar os métodos canMove, move e isValidMove, em um método só
+// Fazer uma tela que pergunte o path da pasta 'Casos'
+// Há a existencia de frutas compartilhadas com outros galhos, tem que fazer com que na anáise de um V ou W, ele consiga contar um número que ja foi visitado, caso o número esteja na lógica do caminho esperado (Em um W, se tiver um número no meio do caminho da esquerda que ja foi analisado, que ele conte este número, pois é o caso de uma fruta com galhos compartilhados)
+// Fazer com que quando a árvore estiver toda analisada, mude o treeStatus para "Concluido"
+
 package src;
 
 import javax.swing.*;
@@ -15,7 +20,7 @@ public class MonkeyTree extends JPanel {
     private String lastDirection = "straight";
     private char[][] tree;
     private int[][] path;
-    private static int CELL_SIZE = 20;
+    private static int CELL_SIZE = 30;
     private String treeStatus = "Em Analise";
     private int height, width;
     private int[][] maxPathSums;
@@ -186,7 +191,7 @@ public class MonkeyTree extends JPanel {
         calculateMaxPath();
 
         dfsStack.push(new int[] { startRow, startCol, 0 });
-        stepTimer = new javax.swing.Timer(50, e -> animateStep());
+        stepTimer = new javax.swing.Timer(10, e -> animateStep());
         stepTimer.start();
     }
 
