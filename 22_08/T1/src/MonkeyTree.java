@@ -9,6 +9,7 @@ import java.util.List;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
+import java.util.prefs.Preferences; // Import adicionado
 
 public class MonkeyTree extends JPanel {
 
@@ -39,6 +40,10 @@ public class MonkeyTree extends JPanel {
     private JFrame debugFrame;
     private JTextArea debugTextArea;
     private List<String> debugLogs;
+
+    // Constantes para preferências
+    private static final String PREFS_NODE = "MonkeyTreePrefs";
+    private static final String LAST_CASES_PATH_KEY = "lastCasesPath";
 
     // Classe interna para representar um nó no caminho
     private static class PathNode {
@@ -88,8 +93,26 @@ public class MonkeyTree extends JPanel {
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
-            String selectedFile = selectFileDialog();
+            Preferences prefs = Preferences.userRoot().node(PREFS_NODE);
+            String savedPath = prefs.get(LAST_CASES_PATH_KEY, null);
+            final String selectedFile; // Declarar como final
+
+            if (savedPath != null) {
+                File savedFolder = new File(savedPath);
+                if (savedFolder.exists() && savedFolder.isDirectory()) {
+                    selectedFile = savedPath;
+                } else {
+                    // Se o caminho salvo não for válido, solicita novamente
+                    selectedFile = selectFileDialog();
+                }
+            } else {
+                selectedFile = selectFileDialog();
+            }
+
             if (selectedFile != null) {
+                // Salva o caminho selecionado nas preferências
+                prefs.put(LAST_CASES_PATH_KEY, selectedFile);
+
                 MonkeyTree visualizer = new MonkeyTree(selectedFile);
 
                 JFrame frame = new JFrame("Monkey Tree Visualizer");
@@ -104,12 +127,14 @@ public class MonkeyTree extends JPanel {
                 JButton pauseResumeButton = new JButton("Pausar");
                 JButton zoomInButton = new JButton("+");
                 JButton zoomOutButton = new JButton("-");
+                JButton changePathButton = new JButton("Alterar Caminho"); // Botão para alterar o caminho
 
                 buttonPanel.add(resetButton);
                 buttonPanel.add(pauseResumeButton);
                 buttonPanel.add(zoomInButton);
                 buttonPanel.add(zoomOutButton);
                 buttonPanel.add(visualizer.debugButton);
+                buttonPanel.add(changePathButton); // Adiciona o botão ao painel
 
                 // Painel para status e controle
                 JPanel statusPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
@@ -142,7 +167,23 @@ public class MonkeyTree extends JPanel {
                 // Controle de botões
                 resetButton.addActionListener(e -> visualizer.resetVisualization(selectedFile));
                 pauseResumeButton.addActionListener(e -> visualizer.togglePauseResume(pauseResumeButton));
+
+                // Listener para o botão de alterar caminho
+                changePathButton.addActionListener(e -> {
+                    int confirm = JOptionPane.showConfirmDialog(frame, "Deseja alterar o caminho da pasta 'Casos'?", "Confirmar", JOptionPane.YES_NO_OPTION);
+                    if (confirm == JOptionPane.YES_OPTION) {
+                        prefs.remove(LAST_CASES_PATH_KEY); // Remove a preferência salva
+                        String newSelectedFile = selectFileDialog();
+                        if (newSelectedFile != null) {
+                            prefs.put(LAST_CASES_PATH_KEY, newSelectedFile);
+                            visualizer.resetVisualization(newSelectedFile);
+                        } else {
+                            JOptionPane.showMessageDialog(frame, "Nenhuma pasta selecionada. O caminho anterior será mantido.");
+                        }
+                    }
+                });
             } else {
+                JOptionPane.showMessageDialog(null, "Nenhuma pasta selecionada. O programa será encerrado.");
                 System.exit(0); // Sai se nenhum arquivo for selecionado
             }
         });
@@ -185,8 +226,6 @@ public class MonkeyTree extends JPanel {
             } else {
                 JOptionPane.showMessageDialog(null, "Nenhum arquivo TXT encontrado na pasta selecionada.");
             }
-        } else {
-            JOptionPane.showMessageDialog(null, "Nenhuma pasta selecionada. O programa será encerrado.");
         }
         return selectedFile;
     }
@@ -243,7 +282,12 @@ public class MonkeyTree extends JPanel {
             JOptionPane.showMessageDialog(this, "Erro ao ler a árvore do arquivo.", "Erro", JOptionPane.ERROR_MESSAGE);
             System.exit(1);
         }
+        this.height = tree.length;
+        this.width = tree[0].length;
         resetState();
+        setPreferredSize(new Dimension(tree[0].length * CELL_SIZE, tree.length * CELL_SIZE));
+        revalidate();
+        repaint();
         startVisualization();
     }
 
@@ -589,14 +633,20 @@ public class MonkeyTree extends JPanel {
         }
 
         debugTextArea.setText(String.join("\n", debugLogs));
-        debugFrame.setVisible(true);
+        debugTextArea.revalidate();
+        debugTextArea.repaint();
+        debugFrame.setVisible(true); // Mova setVisible para depois de setText
     }
 
     private void logDebug(String message) {
         debugLogs.add(message);
-        debugTextArea.setText(String.join("\n", debugLogs));
-        debugTextArea.revalidate();
-        debugTextArea.repaint();
+        // Evitar chamar setText a cada log para melhorar desempenho
+        // Atualize apenas quando o debugFrame estiver visível
+        if (debugFrame != null && debugFrame.isVisible()) {
+            debugTextArea.append(message + "\n");
+            debugTextArea.revalidate();
+            debugTextArea.repaint();
+        }
     }
 
     @Override
