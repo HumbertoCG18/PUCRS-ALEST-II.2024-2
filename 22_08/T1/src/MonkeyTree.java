@@ -1,8 +1,3 @@
-// Juntar os métodos canMove, move e isValidMove, em um método só
-// Fazer uma tela que pergunte o path da pasta 'Casos'
-// Há a existencia de frutas compartilhadas com outros galhos, tem que fazer com que na anáise de um V ou W, ele consiga contar um número que ja foi visitado, caso o número esteja na lógica do caminho esperado (Em um W, se tiver um número no meio do caminho da esquerda que ja foi analisado, que ele conte este número, pois é o caso de uma fruta com galhos compartilhados)
-// Fazer com que quando a árvore estiver toda analisada, mude o treeStatus para "Concluido"
-
 package src;
 
 import javax.swing.*;
@@ -32,7 +27,7 @@ public class MonkeyTree extends JPanel {
     private int currentSum;
 
     private javax.swing.Timer stepTimer;
-    private Stack<int[]> dfsStack;
+    private Stack<PathNode> dfsStack;
     private Stack<int[]> maxPathStack;
     private boolean isReturning = false;
     private boolean isPaused = false;
@@ -45,8 +40,28 @@ public class MonkeyTree extends JPanel {
     private JTextArea debugTextArea;
     private List<String> debugLogs;
 
+    // Classe interna para representar um nó no caminho
+    private static class PathNode {
+        int row;
+        int col;
+        int depth;
+        Set<String> fruitsInPath;
+
+        PathNode(int row, int col, int depth, Set<String> fruitsInPath) {
+            this.row = row;
+            this.col = col;
+            this.depth = depth;
+            // Criar uma cópia do conjunto para cada novo nó
+            this.fruitsInPath = new HashSet<>(fruitsInPath);
+        }
+    }
+
     public MonkeyTree(String filePath) {
         this.tree = readTreeFromFile(filePath);
+        if (this.tree == null) {
+            JOptionPane.showMessageDialog(this, "Erro ao ler a árvore do arquivo.", "Erro", JOptionPane.ERROR_MESSAGE);
+            System.exit(1);
+        }
         this.path = new int[tree.length][tree[0].length];
         this.height = tree.length;
         this.width = tree[0].length;
@@ -127,37 +142,51 @@ public class MonkeyTree extends JPanel {
                 // Controle de botões
                 resetButton.addActionListener(e -> visualizer.resetVisualization(selectedFile));
                 pauseResumeButton.addActionListener(e -> visualizer.togglePauseResume(pauseResumeButton));
+            } else {
+                System.exit(0); // Sai se nenhum arquivo for selecionado
             }
         });
     }
 
     private static String selectFileDialog() {
         String selectedFile = null;
-        try {
-            File dir = new File("../Casos").getCanonicalFile();
-            String[] txtFiles = dir.list((d, name) -> name.endsWith(".txt"));
+        JFileChooser folderChooser = new JFileChooser();
+        folderChooser.setDialogTitle("Selecione a pasta 'Casos'");
+        folderChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+        folderChooser.setAcceptAllFileFilterUsed(false);
+
+        int result = folderChooser.showOpenDialog(null);
+        if (result == JFileChooser.APPROVE_OPTION) {
+            File selectedFolder = folderChooser.getSelectedFile();
+            File[] txtFiles = selectedFolder.listFiles((dir, name) -> name.endsWith(".txt"));
 
             if (txtFiles != null && txtFiles.length > 0) {
-                Arrays.sort(txtFiles, Comparator.comparingInt(a -> Integer.parseInt(a.replaceAll("\\D", ""))));
+                Arrays.sort(txtFiles, Comparator.comparingInt(a -> {
+                    String num = a.getName().replaceAll("\\D", "");
+                    return num.isEmpty() ? 0 : Integer.parseInt(num);
+                }));
 
-                selectedFile = (String) JOptionPane.showInputDialog(
+                String[] fileNames = Arrays.stream(txtFiles)
+                        .map(File::getName)
+                        .toArray(String[]::new);
+
+                String chosenFile = (String) JOptionPane.showInputDialog(
                         null,
                         "Escolha um arquivo TXT para visualizar:",
-                        "Selecao de Arquivo",
+                        "Seleção de Arquivo",
                         JOptionPane.PLAIN_MESSAGE,
                         null,
-                        txtFiles,
-                        txtFiles[0]);
+                        fileNames,
+                        fileNames[0]);
 
-                if (selectedFile != null) {
-                    return new File(dir, selectedFile).getAbsolutePath();
+                if (chosenFile != null) {
+                    selectedFile = new File(selectedFolder, chosenFile).getAbsolutePath();
                 }
             } else {
-                JOptionPane.showMessageDialog(null, "Nenhum arquivo TXT encontrado na pasta 'Casos'.");
+                JOptionPane.showMessageDialog(null, "Nenhum arquivo TXT encontrado na pasta selecionada.");
             }
-        } catch (IOException e) {
-            JOptionPane.showMessageDialog(null, "Erro ao acessar a pasta: " + e.getMessage());
-            e.printStackTrace();
+        } else {
+            JOptionPane.showMessageDialog(null, "Nenhuma pasta selecionada. O programa será encerrado.");
         }
         return selectedFile;
     }
@@ -165,6 +194,10 @@ public class MonkeyTree extends JPanel {
     private char[][] readTreeFromFile(String filePath) {
         try (BufferedReader reader = new BufferedReader(new FileReader(filePath, StandardCharsets.UTF_8))) {
             String[] dimensions = reader.readLine().split(" ");
+            if (dimensions.length < 2) {
+                JOptionPane.showMessageDialog(this, "Formato do arquivo inválido. Primeira linha deve conter dimensões.", "Erro", JOptionPane.ERROR_MESSAGE);
+                return null;
+            }
             int rows = Integer.parseInt(dimensions[0]);
             int cols = Integer.parseInt(dimensions[1]);
 
@@ -172,14 +205,15 @@ public class MonkeyTree extends JPanel {
 
             String line;
             int row = 0;
-            while ((line = reader.readLine()) != null) {
-                for (int col = 0; col < line.length(); col++) {
+            while ((line = reader.readLine()) != null && row < rows) {
+                for (int col = 0; col < Math.min(line.length(), cols); col++) {
                     tree[row][col] = line.charAt(col);
                 }
                 row++;
             }
             return tree;
-        } catch (IOException e) {
+        } catch (IOException | NumberFormatException e) {
+            JOptionPane.showMessageDialog(this, "Erro ao ler o arquivo: " + e.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);
             e.printStackTrace();
             return null;
         }
@@ -190,9 +224,14 @@ public class MonkeyTree extends JPanel {
         findStartingPoint();
         calculateMaxPath();
 
-        dfsStack.push(new int[] { startRow, startCol, 0 });
-        stepTimer = new javax.swing.Timer(10, e -> animateStep());
-        stepTimer.start();
+        if (treeStatus.equals("Em Analise")) {
+            // Inicializar com um PathNode vazio (sem frutas contabilizadas)
+            Set<String> initialFruits = new HashSet<>();
+            PathNode startNode = new PathNode(startRow, startCol, 0, initialFruits);
+            dfsStack.push(startNode);
+            stepTimer = new javax.swing.Timer(30, e -> animateStep()); // Ajustado para 30ms
+            stepTimer.start();
+        }
     }
 
     public void resetVisualization(String filePath) {
@@ -200,6 +239,10 @@ public class MonkeyTree extends JPanel {
             stepTimer.stop();
         }
         this.tree = readTreeFromFile(filePath);
+        if (this.tree == null) {
+            JOptionPane.showMessageDialog(this, "Erro ao ler a árvore do arquivo.", "Erro", JOptionPane.ERROR_MESSAGE);
+            System.exit(1);
+        }
         resetState();
         startVisualization();
     }
@@ -217,8 +260,8 @@ public class MonkeyTree extends JPanel {
 
     public void centerOnPointer(JScrollPane scrollPane) {
         if (!isPaused && !dfsStack.isEmpty()) {
-            int[] pos = dfsStack.peek();
-            Rectangle rect = new Rectangle(pos[1] * CELL_SIZE, pos[0] * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+            PathNode pos = dfsStack.peek();
+            Rectangle rect = new Rectangle(pos.col * CELL_SIZE, pos.row * CELL_SIZE, CELL_SIZE, CELL_SIZE);
             scrollPane.getViewport().scrollRectToVisible(rect);
         }
     }
@@ -226,12 +269,16 @@ public class MonkeyTree extends JPanel {
     public void zoomIn() {
         CELL_SIZE += 5;
         setPreferredSize(new Dimension(width * CELL_SIZE, height * CELL_SIZE));
+        revalidate();
+        repaint();
     }
 
     public void zoomOut() {
         if (CELL_SIZE > 5) {
             CELL_SIZE -= 5;
             setPreferredSize(new Dimension(width * CELL_SIZE, height * CELL_SIZE));
+            revalidate();
+            repaint();
         }
     }
 
@@ -245,6 +292,7 @@ public class MonkeyTree extends JPanel {
         isReturning = false;
         isPaused = false;
         debugLogs.clear();
+        updateStatusMessage();
     }
 
     private void updateStatusMessage() {
@@ -280,6 +328,10 @@ public class MonkeyTree extends JPanel {
                     if (Character.isDigit(tree[i][j])) {
                         maxPathSums[i][j] += Character.getNumericValue(tree[i][j]);
                     }
+
+                    if (maxPathSums[i][j] > maxSum) {
+                        maxSum = maxPathSums[i][j];
+                    }
                 }
             }
         }
@@ -287,30 +339,28 @@ public class MonkeyTree extends JPanel {
 
     private void animateStep() {
         if (!dfsStack.isEmpty()) {
-            int[] pos = dfsStack.peek();
-            currentRow = pos[0];
-            currentCol = pos[1];
-            int depth = pos[2];
+            PathNode currentNode = dfsStack.peek();
+            currentRow = currentNode.row;
+            currentCol = currentNode.col;
+            int depth = currentNode.depth;
 
             logDebug(String.format("Posicao atual: (%d, %d), Soma atual: %d", currentRow, currentCol, currentSum));
 
-            // Explorando um novo caminho
             if (!isReturning) {
                 path[currentRow][currentCol] = 1;
 
-                // Atualiza a soma ao encontrar um número
                 if (Character.isDigit(tree[currentRow][currentCol])) {
                     int value = Character.getNumericValue(tree[currentRow][currentCol]);
                     if (value > 0) {
-                        currentSum += value;
+                        // currentSum já é incrementada no attemptMove
                     }
                     if (currentSum > maxSum) {
                         maxSum = currentSum;
                         saveMaxPath();
+                        logDebug(String.format("Updated maxSum to %d", maxSum));
                     }
                 }
 
-                // Se encontrar o ponto final '#', inicia o backtracking
                 if (tree[currentRow][currentCol] == '#') {
                     logDebug("Encontrou o ponto final '#'. Iniciando backtracking.");
                     isReturning = true;
@@ -318,61 +368,37 @@ public class MonkeyTree extends JPanel {
                     repaint();
                     boolean moved = false;
 
-                    // Verificando e priorizando 'V' e 'W'
                     if (tree[currentRow][currentCol] == 'W' || tree[currentRow][currentCol] == 'V') {
-                        // Reinicia a prioridade
-                        moved = resetDirectionPriority(Character.toString(tree[currentRow][currentCol]), currentRow,
-                                currentCol, depth);
+                        moved = resetDirectionPriority(Character.toString(tree[currentRow][currentCol]), currentRow, currentCol, depth);
                     } else {
-                        // Ajustar a prioridade com base em lastDirection
-                        if (lastDirection.equals("left")) {
-                            if (canMove(currentRow, currentCol, "left")) {
-                                move(currentRow, currentCol, depth, "left");
-                                moved = true;
-                            } else if (canMove(currentRow, currentCol, "straight")) {
-                                move(currentRow, currentCol, depth, "straight");
-                                moved = true;
-                            } else if (canMove(currentRow, currentCol, "right")) {
-                                move(currentRow, currentCol, depth, "right");
-                                moved = true;
-                            }
-                        } else if (lastDirection.equals("right")) {
-                            if (canMove(currentRow, currentCol, "right")) {
-                                move(currentRow, currentCol, depth, "right");
-                                moved = true;
-                            } else if (canMove(currentRow, currentCol, "straight")) {
-                                move(currentRow, currentCol, depth, "straight");
-                                moved = true;
-                            } else if (canMove(currentRow, currentCol, "left")) {
-                                move(currentRow, currentCol, depth, "left");
-                                moved = true;
-                            }
-                        } else { // lastDirection é "straight" ou inicial
-                            if (canMove(currentRow, currentCol, "straight")) {
-                                move(currentRow, currentCol, depth, "straight");
-                                moved = true;
-                            } else if (canMove(currentRow, currentCol, "left")) {
-                                move(currentRow, currentCol, depth, "left");
-                                moved = true;
-                            } else if (canMove(currentRow, currentCol, "right")) {
-                                move(currentRow, currentCol, depth, "right");
-                                moved = true;
-                            }
+                        switch (lastDirection) {
+                            case "left":
+                                moved = attemptMove(currentRow, currentCol, "left", depth) ||
+                                         attemptMove(currentRow, currentCol, "straight", depth) ||
+                                         attemptMove(currentRow, currentCol, "right", depth);
+                                break;
+                            case "right":
+                                moved = attemptMove(currentRow, currentCol, "right", depth) ||
+                                         attemptMove(currentRow, currentCol, "straight", depth) ||
+                                         attemptMove(currentRow, currentCol, "left", depth);
+                                break;
+                            default:
+                                moved = attemptMove(currentRow, currentCol, "straight", depth) ||
+                                         attemptMove(currentRow, currentCol, "left", depth) ||
+                                         attemptMove(currentRow, currentCol, "right", depth);
+                                break;
                         }
                     }
 
-                    // **Adicione esta verificação para utilizar a variável 'moved'**
                     if (!moved) {
                         logDebug("Sem movimentos disponíveis, iniciando backtracking.");
                         isReturning = true;
                     }
                 }
             } else {
-                // Processo de backtracking
                 logDebug("Retornando...");
                 treeStatus = "Em Analise";
 
-                // Verifica se o nó atual é 'W' ou 'V' e se ainda não foi totalmente explorado
                 if ((tree[currentRow][currentCol] == 'W' || tree[currentRow][currentCol] == 'V') && path[currentRow][currentCol] == 1) {
                     logDebug(String.format("Retornando de %s na posicao (%d, %d)", tree[currentRow][currentCol],
                             currentRow, currentCol));
@@ -389,8 +415,10 @@ public class MonkeyTree extends JPanel {
                 }
             }
         } else {
-            // Se o caminho terminou, pinta o caminho máximo
+            // Se a pilha está vazia, a análise está concluída
             paintMaxPath();
+            treeStatus = "Concluido"; // Atualiza o status para "Concluido"
+            logDebug("Análise concluída. Soma máxima encontrada: " + maxSum);
         }
         updateStatusMessage();
     }
@@ -398,108 +426,21 @@ public class MonkeyTree extends JPanel {
     private boolean resetDirectionPriority(String letter, int row, int col, int depth) {
         boolean moved = false;
 
-        logDebug(String.format("Reiniciando prioridade em %s na posição (%d, %d)", letter, row, col));
+        logDebug(String.format("Reiniciando prioridade em %s na posicao (%d, %d)", letter, row, col));
 
         if (letter.equals("W")) {
-            if (canMove(row, col, "left")) {
-                move(row, col, depth, "left");
-                lastDirection = "left";
-                moved = true;
-            } else if (canMove(row, col, "straight")) {
-                move(row, col, depth, "straight");
-                lastDirection = "straight";
-                moved = true;
-            } else if (canMove(row, col, "right")) {
-                move(row, col, depth, "right");
-                lastDirection = "right";
-                moved = true;
-            }
+            // Alterando a prioridade de movimento para Esquerda -> Direita -> Meio
+            moved = attemptMove(row, col, "left", depth) ||
+                    attemptMove(row, col, "straight", depth)||
+                    attemptMove(row, col, "right", depth);
+
         } else if (letter.equals("V")) {
-            if (canMove(row, col, "left")) {
-                move(row, col, depth, "left");
-                lastDirection = "left";
-                moved = true;
-            } else if (canMove(row, col, "right")) {
-                move(row, col, depth, "right");
-                lastDirection = "right";
-                moved = true;
-            }
+            // Mantém a prioridade existente para 'V'
+            moved = attemptMove(row, col, "left", depth) ||
+                    attemptMove(row, col, "right", depth);
         }
 
         return moved;
-    }
-
-    private boolean canMove(int row, int col, String direction) {
-        int newRow = row - 1;
-        int newCol = col;
-
-        if (direction.equals("left")) {
-            newCol = col - 1;
-            while (newRow >= 0 && newCol >= 0
-                    && (path[newRow][newCol] != 0 || tree[newRow][newCol] == '|' || tree[newRow][newCol] == '/')) {
-                newRow--;
-                newCol--;
-            }
-        } else if (direction.equals("right")) {
-            newCol = col + 1;
-            while (newRow >= 0 && newCol < width
-                    && (path[newRow][newCol] != 0 || tree[newRow][newCol] == '|' || tree[newRow][newCol] == '\\')) {
-                newRow--;
-                newCol++;
-            }
-        } else if (direction.equals("straight")) {
-            while (newRow >= 0
-                    && (path[newRow][newCol] != 0 || tree[newRow][newCol] == '\\' || tree[newRow][newCol] == '/')) {
-                newRow--;
-            }
-        }
-
-        return newCol >= 0 && newCol < width && newRow >= 0 && isValidMove(newRow, newCol) && path[newRow][newCol] == 0;
-    }
-
-    private void move(int row, int col, int depth, String direction) {
-        int newRow = row - 1;
-        int newCol = col;
-        lastDirection = direction;
-
-        if (direction.equals("left")) {
-            // Movendo para a diagonal esquerda
-            newCol = col - 1;
-            logDebug(String.format("Movendo para a esquerda: Novo row: %d, Novo col: %d", newRow, newCol));
-
-            // Pula células com '|' e '/', e células já visitadas
-            while (newRow >= 0 && newCol >= 0 && (path[newRow][newCol] != 0 || tree[newRow][newCol] == '|' || tree[newRow][newCol] == '/')) {
-                newRow--;
-                newCol--;
-            }
-
-        } else if (direction.equals("right")) {
-            // Movendo para a diagonal direita
-            newCol = col + 1;
-            logDebug(String.format("Movendo para a direita: Novo row: %d, Novo col: %d", newRow, newCol));
-
-            // Pula células com '|' e '\', e células já visitadas
-            while (newRow >= 0 && newCol < width && (path[newRow][newCol] != 0 || tree[newRow][newCol] == '|' || tree[newRow][newCol] == '\\')) {
-                newRow--;
-                newCol++;
-            }
-
-        } else if (direction.equals("straight")) {
-            // Movendo para cima
-            logDebug(String.format("Seguindo reto: Novo row: %d, Col permanece: %d", newRow, newCol));
-
-            // Pula células com '\' e '/', e células já visitadas
-            while (newRow >= 0 && (path[newRow][newCol] != 0 || tree[newRow][newCol] == '\\' || tree[newRow][newCol] == '/')) {
-                newRow--;
-            }
-        }
-
-        // Verifica se o movimento é válido e atualiza a pilha DFS
-        if (newRow >= 0 && newCol >= 0 && newCol < width && path[newRow][newCol] == 0) {
-            dfsStack.push(new int[] { newRow, newCol, depth + 1 });
-        } else {
-            logDebug(String.format("Movimento inválido: Row: %d, Col: %d", newRow, newCol));
-        }
     }
 
     private void findStartingPoint() {
@@ -509,6 +450,7 @@ public class MonkeyTree extends JPanel {
                 startCol = col;
                 currentRow = startRow;
                 currentCol = startCol;
+                logDebug(String.format("Ponto de partida encontrado em (%d, %d)", startRow, startCol));
                 return;
             }
         }
@@ -519,8 +461,73 @@ public class MonkeyTree extends JPanel {
                 startCol = col;
                 currentRow = startRow;
                 currentCol = startCol;
+                logDebug(String.format("Ponto de partida alternativo encontrado em (%d, %d)", startRow, startCol));
                 return;
             }
+        }
+        // Se não encontrar nenhum ponto de partida, encerra o programa
+        JOptionPane.showMessageDialog(this, "Nenhum ponto de partida encontrado na árvore.", "Erro", JOptionPane.ERROR_MESSAGE);
+        System.exit(1);
+    }
+
+    private boolean attemptMove(int row, int col, String direction, int depth) {
+        int newRow = row - 1;
+        int newCol = col;
+
+        if (direction.equals("left")) {
+            newCol = col - 1;
+            logDebug(String.format("Attempting to move LEFT from (%d, %d)", row, col));
+            while (newRow >= 0 && newCol >= 0
+                    && (path[newRow][newCol] != 0 || tree[newRow][newCol] == '|' || tree[newRow][newCol] == '/')) {
+                newRow--;
+                newCol--;
+            }
+        } else if (direction.equals("right")) {
+            newCol = col + 1;
+            logDebug(String.format("Attempting to move RIGHT from (%d, %d)", row, col));
+            while (newRow >= 0 && newCol < width
+                    && (path[newRow][newCol] != 0 || tree[newRow][newCol] == '|' || tree[newRow][newCol] == '\\')) {
+                newRow--;
+                newCol++;
+            }
+        } else if (direction.equals("straight")) {
+            logDebug(String.format("Attempting to move STRAIGHT from (%d, %d)", row, col));
+            while (newRow >= 0
+                    && (path[newRow][newCol] != 0 || tree[newRow][newCol] == '\\' || tree[newRow][newCol] == '/')) {
+                newRow--;
+            }
+        }
+
+        if (newRow >= 0 && newCol >= 0 && newCol < width && isValidMove(newRow, newCol)) {
+            Set<String> newFruitsInPath = new HashSet<>(dfsStack.peek().fruitsInPath); // Copiar o conjunto atual
+
+            if (Character.isDigit(tree[newRow][newCol])) {
+                int value = Character.getNumericValue(tree[newRow][newCol]);
+                String posKey = newRow + "," + newCol;
+
+                if (newFruitsInPath.contains(posKey)) {
+                    logDebug(String.format("Shared fruit at (%d, %d) already counted in this path.", newRow, newCol));
+                    // NÃO incrementa currentSum novamente
+                } else {
+                    newFruitsInPath.add(posKey);
+                    currentSum += value;
+                    if (currentSum > maxSum) {
+                        maxSum = currentSum;
+                        saveMaxPath();
+                        logDebug(String.format("Updated maxSum to %d", maxSum));
+                    }
+                }
+            }
+
+            // Criar um novo PathNode com o conjunto atualizado
+            PathNode newNode = new PathNode(newRow, newCol, depth + 1, newFruitsInPath);
+            dfsStack.push(newNode);
+            lastDirection = direction;
+            logDebug(String.format("Moved to (%d, %d) via %s", newRow, newCol, direction));
+            return true;
+        } else {
+            logDebug(String.format("Invalid move to (%d, %d) via %s", newRow, newCol, direction));
+            return false;
         }
     }
 
@@ -531,12 +538,29 @@ public class MonkeyTree extends JPanel {
     }
 
     private void processReturning() {
-        if (Character.isDigit(tree[currentRow][currentCol])) {
-            int value = Character.getNumericValue(tree[currentRow][currentCol]);
-            if (value > 0 && currentSum > 0) {
-                currentSum -= value;
+        PathNode currentNode = dfsStack.peek(); // Obter o nó atual antes de pop
+
+        if (Character.isDigit(tree[currentNode.row][currentNode.col])) {
+            int value = Character.getNumericValue(tree[currentNode.row][currentNode.col]);
+            String posKey = currentNode.row + "," + currentNode.col;
+
+            // Criar um novo conjunto sem a fruta atual
+            Set<String> updatedFruitsInPath = new HashSet<>(currentNode.fruitsInPath);
+            if (updatedFruitsInPath.contains(posKey)) {
+                updatedFruitsInPath.remove(posKey);
+                currentSum -= value; // Decrementa apenas quando a fruta é removida do caminho
+                logDebug(String.format("Removed fruit at (%d, %d) from path. New currentSum: %d", currentNode.row, currentNode.col, currentSum));
+            } else {
+                if (value > 0 && currentSum > 0) {
+                    currentSum -= value;
+                    logDebug(String.format("Decremented currentSum by %d. New currentSum: %d", value, currentSum));
+                }
             }
+
+            // Atualizar o PathNode atual com o conjunto atualizado
+            currentNode.fruitsInPath = updatedFruitsInPath;
         }
+
         path[currentRow][currentCol] = 2; // Marca como backtracked
         dfsStack.pop();
         repaint();
@@ -544,18 +568,18 @@ public class MonkeyTree extends JPanel {
 
     private void saveMaxPath() {
         maxPathStack.clear();
-        for (int[] position : dfsStack) {
-            maxPathStack.push(new int[] { position[0], position[1] });
+        for (PathNode position : dfsStack) {
+            maxPathStack.push(new int[] { position.row, position.col });
         }
     }
 
     private void paintMaxPath() {
         while (!maxPathStack.isEmpty()) {
             int[] pos = maxPathStack.pop();
-            path[pos[0]][pos[1]] = 3;
+            path[pos[0]][pos[1]] = 3; // Corrigido para 3
         }
         repaint();
-    }
+    }    
 
     private void showDebugLog() {
         if (debugFrame == null) {
@@ -589,9 +613,7 @@ public class MonkeyTree extends JPanel {
                     g.setColor(Color.GRAY);
                     g.fillRect(xOffset + j * CELL_SIZE, yOffset + i * CELL_SIZE, CELL_SIZE, CELL_SIZE);
                 } else {
-                    g.setColor(Color.WHITE);
-                    g.drawRect(xOffset + j * CELL_SIZE, yOffset + i * CELL_SIZE, CELL_SIZE, CELL_SIZE);
-
+                    // Determina a cor com base no estado da célula
                     if (path[i][j] == 1) {
                         g.setColor(Color.RED);
                         g.fillRect(xOffset + j * CELL_SIZE, yOffset + i * CELL_SIZE, CELL_SIZE, CELL_SIZE);
@@ -604,12 +626,15 @@ public class MonkeyTree extends JPanel {
                         g.setColor(Color.ORANGE);
                         g.fillRect(xOffset + j * CELL_SIZE, yOffset + i * CELL_SIZE, CELL_SIZE, CELL_SIZE);
                         g.setColor(Color.BLACK);
+                    } else {
+                        g.setColor(Color.WHITE);
                     }
+
+                    g.drawRect(xOffset + j * CELL_SIZE, yOffset + i * CELL_SIZE, CELL_SIZE, CELL_SIZE);
                     g.drawString(Character.toString(tree[i][j]), xOffset + j * CELL_SIZE + 5,
                             yOffset + i * CELL_SIZE + 15);
                 }
             }
         }
-        g.setColor(Color.WHITE);
     }
 }
