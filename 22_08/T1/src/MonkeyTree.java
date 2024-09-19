@@ -186,7 +186,7 @@ public class MonkeyTree extends JPanel {
         calculateMaxPath();
 
         dfsStack.push(new int[] { startRow, startCol, 0 });
-        stepTimer = new javax.swing.Timer(0, e -> animateStep());
+        stepTimer = new javax.swing.Timer(50, e -> animateStep());
         stepTimer.start();
     }
 
