@@ -2,6 +2,7 @@ package src;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import javax.swing.*;
 
@@ -9,12 +10,12 @@ public class LabirintoDoHorrorII {
 
     // Enum para os tipos de seres
     enum Ser {
-        ANAO("Anão", 'A'),
+        ANAO("Anao", 'A'),
         BRUXA("Bruxa", 'B'),
-        CAVALHEIRO("Cavalheiro", 'C'),
+        CAVALEIRO("Cavaleiro", 'C'),
         DUENDE("Duende", 'D'),
         ELFO("Elfo", 'E'),
-        FEIJAO("Feijão", 'F');
+        FADA("Fada", 'F');
 
         private String nome;
         private char codigo;
@@ -64,61 +65,62 @@ public class LabirintoDoHorrorII {
         Map<Integer, Map<Ser, Integer>> regioesSeres = new HashMap<>();
 
         // Método para ler o labirinto a partir de um arquivo
-        public void lerArquivo(String nomeArquivo) throws IOException {
-            BufferedReader br = new BufferedReader(new FileReader(nomeArquivo));
-            String linha = br.readLine();
-            if (linha == null || linha.length() < 2) {
-                br.close();
-                throw new IOException("Arquivo inválido: a primeira linha deve conter M e N.");
-            }
-
-            try {
-                M = Integer.parseInt(String.valueOf(linha.charAt(0)));
-                N = Integer.parseInt(String.valueOf(linha.charAt(1)));
-            } catch (NumberFormatException e) {
-                br.close();
-                throw new IOException("Arquivo inválido: M e N devem ser dígitos.");
-            }
-
-            grid = new Celula[M][N];
-
-            for (int i = 0; i < M; i++) {
-                linha = br.readLine();
-                if (linha == null || linha.length() < N) {
-                    br.close();
-                    throw new IOException("Arquivo inválido: número de linhas ou colunas inconsistente.");
+        public void readMazeFromFile(String filePath) throws IOException {
+            try (BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(filePath), StandardCharsets.UTF_8))) {
+                String linha = br.readLine();
+                if (linha == null || linha.trim().isEmpty()) {
+                    throw new IOException("Arquivo inválido: a primeira linha deve conter M e N.");
                 }
-                for (int j = 0; j < N; j++) {
-                    char ch = linha.charAt(j);
-                    Celula celula = new Celula(i, j);
-                    grid[i][j] = celula;
 
-                    // Verifica se é um ser (letra maiúscula)
-                    if (Character.isLetter(ch) && Character.isUpperCase(ch)) {
-                        celula.ser = Ser.fromCodigo(ch);
-                        if (celula.ser == null) {
-                            System.out.println("Aviso: Código de ser desconhecido '" + ch + "' na célula (" + i + "," + j + ").");
-                        }
+                // Ajuste para suportar dimensões maiores que 9
+                String[] dimensions = linha.trim().split("\\s+");
+                if (dimensions.length < 2) {
+                    throw new IOException("Arquivo inválido: a primeira linha deve conter M e N separados por espaço.");
+                }
+                try {
+                    M = Integer.parseInt(dimensions[0]);
+                    N = Integer.parseInt(dimensions[1]);
+                } catch (NumberFormatException e) {
+                    throw new IOException("Arquivo inválido: M e N devem ser números inteiros.");
+                }
+
+                grid = new Celula[M][N];
+
+                for (int i = 0; i < M; i++) {
+                    linha = br.readLine();
+                    if (linha == null || linha.length() < N) {
+                        throw new IOException("Arquivo inválido: número de linhas ou colunas inconsistente.");
                     }
+                    for (int j = 0; j < N; j++) {
+                        char ch = linha.charAt(j);
+                        Celula celula = new Celula(i, j);
+                        grid[i][j] = celula;
 
-                    // Parse o valor hexadecimal para paredes
-                    int valor = Character.digit(ch, 16);
-                    if (valor == -1) {
-                        // Tenta converter para minúsculo
-                        valor = Character.digit(Character.toLowerCase(ch), 16);
+                        // Verifica se é um ser (letra maiúscula)
+                        if (Character.isLetter(ch) && Character.isUpperCase(ch)) {
+                            celula.ser = Ser.fromCodigo(ch);
+                            if (celula.ser == null) {
+                                System.out.println("Aviso: Código de ser desconhecido '" + ch + "' na célula (" + i + "," + j + ").");
+                            }
+                        }
+
+                        // Parse o valor hexadecimal para paredes
+                        int valor = Character.digit(ch, 16);
                         if (valor == -1) {
-                            br.close();
-                            throw new IOException("Arquivo inválido: caractere não hexadecimal '" + ch + "' na célula (" + i + "," + j + ").");
+                            // Tenta converter para minúsculo
+                            valor = Character.digit(Character.toLowerCase(ch), 16);
+                            if (valor == -1) {
+                                throw new IOException("Arquivo inválido: caractere não hexadecimal '" + ch + "' na célula (" + i + "," + j + ").");
+                            }
                         }
-                    }
 
-                    // Converte o valor hexadecimal para bits (paredes)
-                    for (int k = 0; k < 4; k++) {
-                        celula.paredes[k] = ((valor >> (3 - k)) & 1) == 1;
+                        // Converte o valor hexadecimal para bits (paredes)
+                        for (int k = 0; k < 4; k++) {
+                            celula.paredes[k] = ((valor >> (3 - k)) & 1) == 1;
+                        }
                     }
                 }
             }
-            br.close();
         }
 
         // Método para encontrar as regiões usando DFS
@@ -201,11 +203,36 @@ public class LabirintoDoHorrorII {
         public void renderizar() {
             JFrame frame = new JFrame("Labirinto do Horror II");
             frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-            frame.setSize(N * 60 + 50, M * 60 + 70);
-            frame.setLocationRelativeTo(null);
 
-            LabirintoPanel panel = new LabirintoPanel(grid, M, N);
-            frame.add(panel);
+            // Painel principal
+            JPanel mainPanel = new JPanel(new BorderLayout());
+
+            LabirintoPanel labirintoPanel = new LabirintoPanel(grid, M, N);
+
+            // Painel de legendas
+            LegendPanel legendPanel = new LegendPanel();
+
+            // Divisória entre os paineis
+            JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, labirintoPanel, legendPanel);
+            splitPane.setDividerLocation(0.75); // Define a posição inicial da divisória
+            splitPane.setResizeWeight(0.75); // Prioriza o redimensionamento do labirinto
+            mainPanel.add(splitPane, BorderLayout.CENTER);
+
+            // Botão para selecionar outro arquivo
+            JButton botaoSelecionarArquivo = new JButton("Selecionar Outro Labirinto");
+            mainPanel.add(botaoSelecionarArquivo, BorderLayout.SOUTH);
+
+            botaoSelecionarArquivo.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    frame.dispose();
+                    SwingUtilities.invokeLater(() -> main(null));
+                }
+            });
+
+            frame.setContentPane(mainPanel);
+            frame.pack(); // Ajusta o tamanho da janela ao conteúdo
+            frame.setLocationRelativeTo(null); // Centraliza a janela
             frame.setVisible(true);
         }
     }
@@ -214,114 +241,170 @@ public class LabirintoDoHorrorII {
     static class LabirintoPanel extends JPanel {
         Celula[][] grid;
         int M, N;
+        int tamanhoCelula = 60;
 
         public LabirintoPanel(Celula[][] grid, int M, int N) {
             this.grid = grid;
             this.M = M;
             this.N = N;
             // Define o tamanho preferido
-            setPreferredSize(new Dimension(N * 60, M * 60));
+            setPreferredSize(new Dimension(N * tamanhoCelula, M * tamanhoCelula));
         }
 
         @Override
         protected void paintComponent(Graphics g) {
             super.paintComponent(g);
 
-            int tamanhoCelula = 60;
+            // Preenche o fundo com cor branca
+            g.setColor(Color.WHITE);
+            g.fillRect(0, 0, getWidth(), getHeight());
+
+            // Usa Graphics2D para configurações avançadas
+            Graphics2D g2 = (Graphics2D) g;
+            g2.setColor(Color.BLACK);
+
+            // Habilita anti-aliasing para melhor qualidade
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+            // Define a espessura da linha
+            float strokeWidth = 4.0f; // Espessura das paredes
+            g2.setStroke(new BasicStroke(strokeWidth));
+
+            // Calcula o tamanho total do labirinto
+            int mazeWidth = N * tamanhoCelula;
+            int mazeHeight = M * tamanhoCelula;
+
+            // Calcula as margens para centralizar o labirinto
+            int offsetX = (getWidth() - mazeWidth) / 2;
+            int offsetY = (getHeight() - mazeHeight) / 2;
+
+            // Garante que as margens não sejam negativas
+            if (offsetX < 0) offsetX = 0;
+            if (offsetY < 0) offsetY = 0;
 
             // Desenha as células
             for (int i = 0; i < M; i++) {
                 for (int j = 0; j < N; j++) {
-                    int x = j * tamanhoCelula;
-                    int y = i * tamanhoCelula;
+                    int x = offsetX + j * tamanhoCelula;
+                    int y = offsetY + i * tamanhoCelula;
                     Celula celula = grid[i][j];
 
                     // Desenha as paredes
-                    g.setColor(Color.BLACK);
                     if (celula.paredes[0]) { // Cima
-                        g.drawLine(x, y, x + tamanhoCelula, y);
+                        g2.drawLine(x, y, x + tamanhoCelula, y);
                     }
                     if (celula.paredes[1]) { // Direita
-                        g.drawLine(x + tamanhoCelula, y, x + tamanhoCelula, y + tamanhoCelula);
+                        g2.drawLine(x + tamanhoCelula, y, x + tamanhoCelula, y + tamanhoCelula);
                     }
                     if (celula.paredes[2]) { // Baixo
-                        g.drawLine(x, y + tamanhoCelula, x + tamanhoCelula, y + tamanhoCelula);
+                        g2.drawLine(x, y + tamanhoCelula, x + tamanhoCelula, y + tamanhoCelula);
                     }
                     if (celula.paredes[3]) { // Esquerda
-                        g.drawLine(x, y, x, y + tamanhoCelula);
+                        g2.drawLine(x, y, x, y + tamanhoCelula);
                     }
 
                     // Desenha o ser, se houver
                     if (celula.ser != null) {
-                        g.setColor(Color.RED);
-                        g.setFont(new Font("Arial", Font.BOLD, 14));
+                        g2.setColor(Color.RED);
+                        g2.setFont(new Font("Arial", Font.BOLD, 24)); // Aumenta o tamanho da fonte
                         String texto = String.valueOf(celula.ser.getCodigo());
-                        FontMetrics fm = g.getFontMetrics();
+                        FontMetrics fm = g2.getFontMetrics();
                         int textoWidth = fm.stringWidth(texto);
-                        int textoHeight = fm.getHeight();
-                        g.drawString(texto, x + (tamanhoCelula - textoWidth) / 2, y + (tamanhoCelula + textoHeight / 2) / 2);
-                        g.setColor(Color.BLACK);
+                        int textoHeight = fm.getAscent();
+                        g2.drawString(texto, x + (tamanhoCelula - textoWidth) / 2, y + (tamanhoCelula + textoHeight) / 2);
+                        g2.setColor(Color.BLACK);
                     }
                 }
             }
         }
     }
 
-    public static void main(String[] args) {
-        // Diretório onde estão os arquivos de labirintos
-        String pastaLabirintos = "Labirintos";
+    // Painel de legendas
+    static class LegendPanel extends JPanel {
+        public LegendPanel() {
+            setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
+            setBorder(BorderFactory.createTitledBorder("Legenda"));
+            setPreferredSize(new Dimension(200, 0)); // Largura fixa
 
-        File dir = new File(pastaLabirintos);
-        if (!dir.exists() || !dir.isDirectory()) {
-            JOptionPane.showMessageDialog(null, "Pasta 'Labirintos' não encontrada no diretório atual.", "Erro", JOptionPane.ERROR_MESSAGE);
-            return;
+            for (Ser ser : Ser.values()) {
+                JPanel itemPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+                JLabel iconLabel = new JLabel(String.valueOf(ser.getCodigo()));
+                iconLabel.setFont(new Font("Arial", Font.BOLD, 24));
+                iconLabel.setForeground(Color.RED);
+                JLabel nameLabel = new JLabel("- " + ser.getNome());
+                nameLabel.setFont(new Font("Arial", Font.PLAIN, 16));
+                itemPanel.add(iconLabel);
+                itemPanel.add(nameLabel);
+                add(itemPanel);
+            }
         }
+    }
 
-        // Lista todos os arquivos .txt na pasta
-        File[] arquivos = dir.listFiles(new FilenameFilter() {
-            public boolean accept(File dir, String name) {
-                return name.toLowerCase().endsWith(".txt");
+    // Método para selecionar o arquivo de labirinto
+    private static String selectFileDialog() {
+        String selectedFile = null;
+        JFileChooser folderChooser = new JFileChooser();
+        folderChooser.setDialogTitle("Selecione a pasta que contém os arquivos de labirinto");
+        folderChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+        folderChooser.setAcceptAllFileFilterUsed(false);
+
+        int result = folderChooser.showOpenDialog(null);
+        if (result == JFileChooser.APPROVE_OPTION) {
+            File selectedFolder = folderChooser.getSelectedFile();
+            File[] txtFiles = selectedFolder.listFiles((dir, name) -> name.toLowerCase().endsWith(".txt"));
+
+            if (txtFiles != null && txtFiles.length > 0) {
+                Arrays.sort(txtFiles, Comparator.comparing(File::getName));
+
+                String[] fileNames = Arrays.stream(txtFiles)
+                        .map(File::getName)
+                        .toArray(String[]::new);
+
+                String chosenFile = (String) JOptionPane.showInputDialog(
+                        null,
+                        "Escolha um arquivo TXT para visualizar:",
+                        "Seleção de Arquivo",
+                        JOptionPane.PLAIN_MESSAGE,
+                        null,
+                        fileNames,
+                        fileNames[0]);
+
+                if (chosenFile != null) {
+                    selectedFile = new File(selectedFolder, chosenFile).getAbsolutePath();
+                }
+            } else {
+                JOptionPane.showMessageDialog(null, "Nenhum arquivo TXT encontrado na pasta selecionada.");
+            }
+        }
+        return selectedFile;
+    }
+
+    public static void main(String[] args) {
+        // Definir o padrão de codificação para UTF-8
+        System.setProperty("file.encoding", "UTF-8");
+
+        // Executa o programa na thread da interface gráfica
+        SwingUtilities.invokeLater(() -> {
+            String caminhoArquivo = selectFileDialog();
+
+            if (caminhoArquivo == null) {
+                // Usuário cancelou a seleção
+                System.exit(0);
+            }
+
+            // Cria o labirinto
+            Labirinto labirinto = new Labirinto();
+
+            try {
+                labirinto.readMazeFromFile(caminhoArquivo);
+                labirinto.encontrarRegioes();
+                labirinto.contarSeres();
+                labirinto.imprimirResultados();
+                labirinto.renderizar();
+            } catch (IOException e) {
+                JOptionPane.showMessageDialog(null, "Erro ao ler o arquivo: " + e.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);
+                e.printStackTrace();
             }
         });
-
-        if (arquivos == null || arquivos.length == 0) {
-            JOptionPane.showMessageDialog(null, "Nenhum arquivo .txt encontrado na pasta 'Labirintos'.", "Erro", JOptionPane.ERROR_MESSAGE);
-            return;
-        }
-
-        // Cria um array com os nomes dos arquivos
-        String[] nomesArquivos = new String[arquivos.length];
-        for (int i = 0; i < arquivos.length; i++) {
-            nomesArquivos[i] = arquivos[i].getName();
-        }
-
-        // Cria o JComboBox para seleção dos arquivos
-        JComboBox<String> comboBox = new JComboBox<>(nomesArquivos);
-        comboBox.setSelectedIndex(0);
-
-        // Mostra o diálogo de seleção
-        int resultado = JOptionPane.showConfirmDialog(null, comboBox, "Selecione um arquivo de labirinto", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
-
-        if (resultado != JOptionPane.OK_OPTION) {
-            // Usuário cancelou
-            return;
-        }
-
-        String arquivoSelecionado = (String) comboBox.getSelectedItem();
-        String caminhoArquivo = pastaLabirintos + File.separator + arquivoSelecionado;
-
-        // Cria o labirinto
-        Labirinto labirinto = new Labirinto();
-
-        try {
-            labirinto.lerArquivo(caminhoArquivo);
-            labirinto.encontrarRegioes();
-            labirinto.contarSeres();
-            labirinto.imprimirResultados();
-            labirinto.renderizar();
-        } catch (IOException e) {
-            JOptionPane.showMessageDialog(null, "Erro ao ler o arquivo: " + e.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);
-            e.printStackTrace();
-        }
     }
 }
