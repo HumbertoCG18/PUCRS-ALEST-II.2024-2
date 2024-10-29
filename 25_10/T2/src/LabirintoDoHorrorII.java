@@ -238,7 +238,7 @@ public class LabirintoDoHorrorII {
     }
 
     // Painel personalizado para desenhar o labirinto
-    static class LabirintoPanel extends JPanel {
+        static class LabirintoPanel extends JPanel {
         Celula[][] grid;
         int M, N;
         int tamanhoCelula = 60;
