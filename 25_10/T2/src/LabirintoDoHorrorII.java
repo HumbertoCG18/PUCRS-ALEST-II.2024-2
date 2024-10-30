@@ -2,12 +2,9 @@ package src;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.*;
-import java.nio.charset.StandardCharsets;
 import java.util.*;
 import javax.swing.*;
 
-
-//Fazer no output, aparecer a contagem total de cada ser com base nas 
 public class LabirintoDoHorrorII {
 
     // Enum para os tipos de seres
@@ -17,7 +14,7 @@ public class LabirintoDoHorrorII {
         CAVALEIRO("Cavaleiro", 'C'),
         DUENDE("Duende", 'D'),
         ELFO("Elfo", 'E'),
-        FADA("Fada", 'F');
+        FEIJAO("Feijao", 'F');
 
         private String nome;
         private char codigo;
@@ -68,22 +65,21 @@ public class LabirintoDoHorrorII {
 
         // Método para ler o labirinto a partir de um arquivo
         public void readMazeFromFile(String filePath) throws IOException {
-            try (BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(filePath), StandardCharsets.UTF_8))) {
+            try (BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(filePath), "UTF-8"))) {
                 String linha = br.readLine();
-                if (linha == null || linha.trim().isEmpty()) {
+                if (linha == null || linha.length() < 2) {
                     throw new IOException("Arquivo inválido: a primeira linha deve conter M e N.");
                 }
 
-                // Ajuste para suportar dimensões maiores que 9
-                String[] dimensions = linha.trim().split("\\s+");
-                if (dimensions.length < 2) {
-                    throw new IOException("Arquivo inválido: a primeira linha deve conter M e N separados por espaço.");
-                }
                 try {
-                    M = Integer.parseInt(dimensions[0]);
-                    N = Integer.parseInt(dimensions[1]);
+                    M = Character.getNumericValue(linha.charAt(0));
+                    N = Character.getNumericValue(linha.charAt(1));
+
+                    if (M < 1 || M > 9 || N < 1 || N > 9) {
+                        throw new IOException("M e N devem ser dígitos entre 1 e 9.");
+                    }
                 } catch (NumberFormatException e) {
-                    throw new IOException("Arquivo inválido: M e N devem ser números inteiros.");
+                    throw new IOException("Arquivo inválido: M e N devem ser dígitos.");
                 }
 
                 grid = new Celula[M][N];
@@ -109,11 +105,7 @@ public class LabirintoDoHorrorII {
                         // Parse o valor hexadecimal para paredes
                         int valor = Character.digit(ch, 16);
                         if (valor == -1) {
-                            // Tenta converter para minúsculo
-                            valor = Character.digit(Character.toLowerCase(ch), 16);
-                            if (valor == -1) {
-                                throw new IOException("Arquivo inválido: caractere não hexadecimal '" + ch + "' na célula (" + i + "," + j + ").");
-                            }
+                            throw new IOException("Arquivo inválido: caractere não hexadecimal '" + ch + "' na célula (" + i + "," + j + ").");
                         }
 
                         // Converte o valor hexadecimal para bits (paredes)
@@ -240,7 +232,7 @@ public class LabirintoDoHorrorII {
     }
 
     // Painel personalizado para desenhar o labirinto
-        static class LabirintoPanel extends JPanel {
+    static class LabirintoPanel extends JPanel {
         Celula[][] grid;
         int M, N;
         int tamanhoCelula = 60;
