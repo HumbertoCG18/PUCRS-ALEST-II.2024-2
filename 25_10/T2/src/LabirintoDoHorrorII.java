@@ -6,6 +6,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.*;
 import javax.swing.*;
 
+
+//Fazer no output, aparecer a contagem total de cada ser com base nas 
 public class LabirintoDoHorrorII {
 
     // Enum para os tipos de seres
