@@ -1,20 +1,39 @@
 package src;
-import java.awt.*;
-import java.awt.event.*;
-import java.io.*;
-import java.util.*;
+
+import java.awt.BasicStroke;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.Font;
+import java.awt.FontMetrics;
+import java.awt.FlowLayout;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.GridLayout;
+import java.awt.RenderingHints;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import javax.swing.*;
+
+import java.io.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.List;
+import java.util.Arrays;
 
 public class LabirintoDoHorrorII {
 
     // Enum para os tipos de seres
     enum Ser {
-        ANAO("Anao", 'A'),
+        ANAO("Anão", 'A'),
         BRUXA("Bruxa", 'B'),
         CAVALEIRO("Cavaleiro", 'C'),
         DUENDE("Duende", 'D'),
         ELFO("Elfo", 'E'),
-        FEIJAO("Feijao", 'F');
+        FEIJAO("Feijão", 'F');
 
         private String nome;
         private char codigo;
@@ -63,34 +82,71 @@ public class LabirintoDoHorrorII {
         int numRegioes = 0;
         Map<Integer, Map<Ser, Integer>> regioesSeres = new HashMap<>();
 
+        // Mapa de cores para as regiões
+        Map<Integer, Color> regionColors = new HashMap<>();
+
+        // Método para obter a cor associada a uma região
+        Color getColorForRegion(int regionId) {
+            // Se já temos uma cor para esta região, retornamos
+            if (regionColors.containsKey(regionId)) {
+                return regionColors.get(regionId);
+            }
+
+            // Caso contrário, geramos uma nova cor aleatória
+            float hue = (float) (Math.random());
+            float saturation = 0.5f + (float) (Math.random() * 0.5);
+            float brightness = 0.7f + (float) (Math.random() * 0.3);
+            Color color = Color.getHSBColor(hue, saturation, brightness);
+
+            regionColors.put(regionId, color);
+            return color;
+        }
+
         // Método para ler o labirinto a partir de um arquivo
         public void readMazeFromFile(String filePath) throws IOException {
-            try (BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(filePath), "UTF-8"))) {
+            try (BufferedReader br = new BufferedReader(
+                    new InputStreamReader(new FileInputStream(filePath), "UTF-8"))) {
                 String linha = br.readLine();
-                if (linha == null || linha.length() < 2) {
+                if (linha == null || linha.trim().isEmpty()) {
                     throw new IOException("Arquivo inválido: a primeira linha deve conter M e N.");
                 }
 
-                try {
-                    M = Character.getNumericValue(linha.charAt(0));
-                    N = Character.getNumericValue(linha.charAt(1));
+                // Leitura de M e N como inteiros separados por espaço
+                String[] dimensoes = linha.trim().split("\\s+");
+                if (dimensoes.length < 2) {
+                    throw new IOException(
+                            "Arquivo inválido: a primeira linha deve conter M e N separados por espaço.");
+                }
 
-                    if (M < 1 || M > 9 || N < 1 || N > 9) {
-                        throw new IOException("M e N devem ser dígitos entre 1 e 9.");
-                    }
+                try {
+                    M = Integer.parseInt(dimensoes[0]);
+                    N = Integer.parseInt(dimensoes[1]);
                 } catch (NumberFormatException e) {
-                    throw new IOException("Arquivo inválido: M e N devem ser dígitos.");
+                    throw new IOException("Arquivo inválido: M e N devem ser números inteiros.");
                 }
 
                 grid = new Celula[M][N];
 
                 for (int i = 0; i < M; i++) {
                     linha = br.readLine();
-                    if (linha == null || linha.length() < N) {
-                        throw new IOException("Arquivo inválido: número de linhas ou colunas inconsistente.");
+                    if (linha == null) {
+                        throw new IOException("Arquivo inválido: número de linhas inconsistente.");
                     }
+
+                    // Dividir a linha em tokens usando espaços (inclui múltiplos espaços)
+                    String[] tokens = linha.trim().split("\\s+");
+                    if (tokens.length < N) {
+                        throw new IOException(
+                                "Arquivo inválido: número de colunas inconsistente na linha " + (i + 1));
+                    }
+
                     for (int j = 0; j < N; j++) {
-                        char ch = linha.charAt(j);
+                        String token = tokens[j];
+                        if (token.length() != 1) {
+                            throw new IOException("Arquivo inválido: token inválido '" + token + "' na célula ("
+                                    + i + "," + j + ").");
+                        }
+                        char ch = token.charAt(0);
                         Celula celula = new Celula(i, j);
                         grid[i][j] = celula;
 
@@ -98,14 +154,16 @@ public class LabirintoDoHorrorII {
                         if (Character.isLetter(ch) && Character.isUpperCase(ch)) {
                             celula.ser = Ser.fromCodigo(ch);
                             if (celula.ser == null) {
-                                System.out.println("Aviso: Código de ser desconhecido '" + ch + "' na célula (" + i + "," + j + ").");
+                                System.out.println("Aviso: Código de ser desconhecido '" + ch + "' na célula ("
+                                        + i + "," + j + ").");
                             }
                         }
 
                         // Parse o valor hexadecimal para paredes
                         int valor = Character.digit(ch, 16);
                         if (valor == -1) {
-                            throw new IOException("Arquivo inválido: caractere não hexadecimal '" + ch + "' na célula (" + i + "," + j + ").");
+                            throw new IOException("Arquivo inválido: caractere não hexadecimal '" + ch
+                                    + "' na célula (" + i + "," + j + ").");
                         }
 
                         // Converte o valor hexadecimal para bits (paredes)
@@ -140,8 +198,8 @@ public class LabirintoDoHorrorII {
             int y = celula.y;
 
             // Movimentos: cima, direita, baixo, esquerda
-            int[] dx = {-1, 0, 1, 0};
-            int[] dy = {0, 1, 0, -1};
+            int[] dx = { -1, 0, 1, 0 };
+            int[] dy = { 0, 1, 0, -1 };
 
             for (int k = 0; k < 4; k++) {
                 int nx = x + dx[k];
@@ -186,7 +244,8 @@ public class LabirintoDoHorrorII {
                             serMaisFrequente = entry.getKey();
                         }
                     }
-                    System.out.println("Região " + regiaoId + ": Ser mais frequente é " + serMaisFrequente.getNome());
+                    System.out.println("Região " + regiaoId + ": Ser mais frequente é "
+                            + serMaisFrequente.getNome());
                 } else {
                     System.out.println("Região " + regiaoId + ": Nenhum ser encontrado");
                 }
@@ -201,13 +260,18 @@ public class LabirintoDoHorrorII {
             // Painel principal
             JPanel mainPanel = new JPanel(new BorderLayout());
 
-            LabirintoPanel labirintoPanel = new LabirintoPanel(grid, M, N);
+            LabirintoPanel labirintoPanel = new LabirintoPanel(grid, M, N, this);
+
+            // Adiciona o labirinto a um JScrollPane
+            JScrollPane scrollPane = new JScrollPane(labirintoPanel);
+            scrollPane.getVerticalScrollBar().setUnitIncrement(16);
+            scrollPane.getHorizontalScrollBar().setUnitIncrement(16);
 
             // Painel de legendas
-            LegendPanel legendPanel = new LegendPanel();
+            LegendPanel legendPanel = new LegendPanel(this);
 
             // Divisória entre os paineis
-            JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, labirintoPanel, legendPanel);
+            JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, scrollPane, legendPanel);
             splitPane.setDividerLocation(0.75); // Define a posição inicial da divisória
             splitPane.setResizeWeight(0.75); // Prioriza o redimensionamento do labirinto
             mainPanel.add(splitPane, BorderLayout.CENTER);
@@ -225,8 +289,7 @@ public class LabirintoDoHorrorII {
             });
 
             frame.setContentPane(mainPanel);
-            frame.pack(); // Ajusta o tamanho da janela ao conteúdo
-            frame.setLocationRelativeTo(null); // Centraliza a janela
+            frame.setExtendedState(JFrame.MAXIMIZED_BOTH); // Abre a janela maximizada
             frame.setVisible(true);
         }
     }
@@ -235,12 +298,29 @@ public class LabirintoDoHorrorII {
     static class LabirintoPanel extends JPanel {
         Celula[][] grid;
         int M, N;
-        int tamanhoCelula = 60;
+        int tamanhoCelula;
+        Labirinto labirinto;
 
-        public LabirintoPanel(Celula[][] grid, int M, int N) {
+        public LabirintoPanel(Celula[][] grid, int M, int N, Labirinto labirinto) {
             this.grid = grid;
             this.M = M;
             this.N = N;
+            this.labirinto = labirinto;
+
+            // Ajusta o tamanho da célula com base no tamanho do labirinto
+            int maxDimension = Math.max(M, N);
+            if (maxDimension <= 20) {
+                tamanhoCelula = 40;
+            } else if (maxDimension <= 50) {
+                tamanhoCelula = 20;
+            } else if (maxDimension <= 100) {
+                tamanhoCelula = 10;
+            } else if (maxDimension <= 200) {
+                tamanhoCelula = 5;
+            } else {
+                tamanhoCelula = 2;
+            }
+
             // Define o tamanho preferido
             setPreferredSize(new Dimension(N * tamanhoCelula, M * tamanhoCelula));
         }
@@ -255,34 +335,28 @@ public class LabirintoDoHorrorII {
 
             // Usa Graphics2D para configurações avançadas
             Graphics2D g2 = (Graphics2D) g;
-            g2.setColor(Color.BLACK);
 
             // Habilita anti-aliasing para melhor qualidade
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
             // Define a espessura da linha
-            float strokeWidth = 4.0f; // Espessura das paredes
+            float strokeWidth = Math.max(1.0f, tamanhoCelula / 10.0f); // Ajusta a espessura com base no tamanho da célula
             g2.setStroke(new BasicStroke(strokeWidth));
-
-            // Calcula o tamanho total do labirinto
-            int mazeWidth = N * tamanhoCelula;
-            int mazeHeight = M * tamanhoCelula;
-
-            // Calcula as margens para centralizar o labirinto
-            int offsetX = (getWidth() - mazeWidth) / 2;
-            int offsetY = (getHeight() - mazeHeight) / 2;
-
-            // Garante que as margens não sejam negativas
-            if (offsetX < 0) offsetX = 0;
-            if (offsetY < 0) offsetY = 0;
 
             // Desenha as células
             for (int i = 0; i < M; i++) {
                 for (int j = 0; j < N; j++) {
-                    int x = offsetX + j * tamanhoCelula;
-                    int y = offsetY + i * tamanhoCelula;
+                    int x = j * tamanhoCelula;
+                    int y = i * tamanhoCelula;
                     Celula celula = grid[i][j];
 
+                    // Preenche a célula com a cor da região
+                    Color regionColor = labirinto.getColorForRegion(celula.regiao);
+                    g2.setColor(regionColor);
+                    g2.fillRect(x, y, tamanhoCelula, tamanhoCelula);
+
+                    // Desenha as paredes em preto
+                    g2.setColor(Color.BLACK);
                     // Desenha as paredes
                     if (celula.paredes[0]) { // Cima
                         g2.drawLine(x, y, x + tamanhoCelula, y);
@@ -299,38 +373,141 @@ public class LabirintoDoHorrorII {
 
                     // Desenha o ser, se houver
                     if (celula.ser != null) {
-                        g2.setColor(Color.RED);
-                        g2.setFont(new Font("Arial", Font.BOLD, 24)); // Aumenta o tamanho da fonte
-                        String texto = String.valueOf(celula.ser.getCodigo());
-                        FontMetrics fm = g2.getFontMetrics();
-                        int textoWidth = fm.stringWidth(texto);
-                        int textoHeight = fm.getAscent();
-                        g2.drawString(texto, x + (tamanhoCelula - textoWidth) / 2, y + (tamanhoCelula + textoHeight) / 2);
+                        Color serColor = getColorForSer(celula.ser);
+                        if (tamanhoCelula >= 10) {
+                            int fontSize = tamanhoCelula - 2;
+                            g2.setColor(serColor);
+                            g2.setFont(new Font("Arial", Font.BOLD, fontSize));
+                            String texto = String.valueOf(celula.ser.getCodigo());
+                            FontMetrics fm = g2.getFontMetrics();
+                            int textoWidth = fm.stringWidth(texto);
+                            int textoHeight = fm.getAscent();
+
+                            int textX = x + (tamanhoCelula - textoWidth) / 2;
+                            int textY = y + (tamanhoCelula + textoHeight) / 2 - fm.getDescent();
+
+                            g2.drawString(texto, textX, textY);
+                        } else {
+                            // Desenha um quadrado colorido
+                            g2.setColor(serColor);
+                            int size = Math.max(1, tamanhoCelula / 2);
+                            int offset = (tamanhoCelula - size) / 2;
+                            g2.fillRect(x + offset, y + offset, size, size);
+                        }
                         g2.setColor(Color.BLACK);
                     }
                 }
+            }
+        }
+
+        // Método para obter a cor associada a um ser
+        static Color getColorForSer(Ser ser) {
+            switch (ser) {
+                case ANAO:
+                    return Color.RED;
+                case BRUXA:
+                    return Color.GREEN;
+                case CAVALEIRO:
+                    return Color.BLUE;
+                case DUENDE:
+                    return Color.MAGENTA;
+                case ELFO:
+                    return Color.ORANGE;
+                case FEIJAO:
+                    return Color.CYAN;
+                default:
+                    return Color.BLACK;
             }
         }
     }
 
     // Painel de legendas
     static class LegendPanel extends JPanel {
-        public LegendPanel() {
-            setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
-            setBorder(BorderFactory.createTitledBorder("Legenda"));
-            setPreferredSize(new Dimension(200, 0)); // Largura fixa
+        Labirinto labirinto;
 
+        public LegendPanel(Labirinto labirinto) {
+            this.labirinto = labirinto;
+
+            setLayout(new BorderLayout());
+            setBorder(BorderFactory.createTitledBorder("Legenda"));
+            setPreferredSize(new Dimension(250, 0)); // Largura fixa
+
+            // Painel para os seres
+            JPanel seresPanel = new JPanel();
+            seresPanel.setLayout(new BoxLayout(seresPanel, BoxLayout.Y_AXIS));
+
+            // Legenda para os seres
             for (Ser ser : Ser.values()) {
                 JPanel itemPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-                JLabel iconLabel = new JLabel(String.valueOf(ser.getCodigo()));
-                iconLabel.setFont(new Font("Arial", Font.BOLD, 24));
-                iconLabel.setForeground(Color.RED);
-                JLabel nameLabel = new JLabel("- " + ser.getNome());
+                Color serColor = LabirintoPanel.getColorForSer(ser);
+                JLabel colorLabel = new JLabel("■");
+                colorLabel.setFont(new Font("Arial", Font.BOLD, 24));
+                colorLabel.setForeground(serColor);
+                JLabel nameLabel = new JLabel(" " + ser.getNome());
                 nameLabel.setFont(new Font("Arial", Font.PLAIN, 16));
-                itemPanel.add(iconLabel);
+                itemPanel.add(colorLabel);
                 itemPanel.add(nameLabel);
-                add(itemPanel);
+                seresPanel.add(itemPanel);
             }
+
+            // Espaçamento
+            seresPanel.add(Box.createVerticalStrut(20));
+
+            // Painel para as regiões
+            JPanel regioesPanel = new JPanel();
+            regioesPanel.setLayout(new BorderLayout());
+
+            JLabel regioesLabel = new JLabel("Regiões:");
+            regioesLabel.setFont(new Font("Arial", Font.BOLD, 18));
+            regioesPanel.add(regioesLabel, BorderLayout.NORTH);
+
+            // Painel para listar as regiões com múltiplas colunas
+            JPanel regioesListPanel = new JPanel();
+            int numColunas = 3; // Defina o número de colunas desejado
+            regioesListPanel.setLayout(new GridLayout(0, numColunas, 10, 10)); // 0 linhas, 3 colunas, 10px gaps
+
+            // Ordenar as regiões por ID
+            List<Integer> regiaoIds = new ArrayList<>(labirinto.regionColors.keySet());
+            Collections.sort(regiaoIds);
+
+            for (Integer regiaoId : regiaoIds) {
+                JPanel itemPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
+                Color regionColor = labirinto.getColorForRegion(regiaoId);
+
+                // Usando o caractere "■" para representar a cor
+                JLabel colorLabel = new JLabel("■");
+                colorLabel.setFont(new Font("Arial", Font.BOLD, 16));
+                colorLabel.setForeground(regionColor);
+
+                // Número da região
+                JLabel nameLabel = new JLabel(" Região " + regiaoId);
+                nameLabel.setFont(new Font("Arial", Font.PLAIN, 14));
+
+                itemPanel.add(colorLabel);
+                itemPanel.add(nameLabel);
+                regioesListPanel.add(itemPanel);
+            }
+
+            // Adicionar regioesListPanel a um JScrollPane
+            JScrollPane regioesScrollPane = new JScrollPane(regioesListPanel);
+            regioesScrollPane.setPreferredSize(new Dimension(250, 300)); // Ajuste conforme necessário
+            regioesScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
+            regioesScrollPane.setBorder(BorderFactory.createEmptyBorder());
+
+            regioesPanel.add(regioesScrollPane, BorderLayout.CENTER);
+
+            // Painel principal de legendas
+            JPanel legendasMainPanel = new JPanel();
+            legendasMainPanel.setLayout(new BoxLayout(legendasMainPanel, BoxLayout.Y_AXIS));
+            legendasMainPanel.add(seresPanel);
+            legendasMainPanel.add(Box.createVerticalStrut(10));
+            legendasMainPanel.add(regioesPanel);
+
+            // Adicionar legendasMainPanel a um JScrollPane se necessário
+            JScrollPane legendasScrollPane = new JScrollPane(legendasMainPanel);
+            legendasScrollPane.setBorder(BorderFactory.createEmptyBorder()); // Remove borda extra
+
+            add(legendasScrollPane, BorderLayout.CENTER);
         }
     }
 
@@ -396,7 +573,8 @@ public class LabirintoDoHorrorII {
                 labirinto.imprimirResultados();
                 labirinto.renderizar();
             } catch (IOException e) {
-                JOptionPane.showMessageDialog(null, "Erro ao ler o arquivo: " + e.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(null, "Erro ao ler o arquivo: " + e.getMessage(), "Erro",
+                        JOptionPane.ERROR_MESSAGE);
                 e.printStackTrace();
             }
         });
