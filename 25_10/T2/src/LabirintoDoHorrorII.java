@@ -29,7 +29,7 @@ import java.util.Map;
 import java.util.List;
 
 public class LabirintoDoHorrorII {
-
+//Todo: Fazer com que quando clique em uma cor, a borda da região fique em Vermelho, e que ofusque as outras regiões, e quando clicar na mesma cor novamente, volte ao normal
     // Enum para os tipos de seres
     enum Ser {
         ANAO("Anao", 'A'),
@@ -91,14 +91,14 @@ public class LabirintoDoHorrorII {
                 Color.GREEN,
                 Color.BLUE,
                 Color.ORANGE,
-                Color.MAGENTA,
+                new Color(252, 144, 198),
                 Color.CYAN,
-                Color.PINK,
-                Color.YELLOW,
+                new Color(179, 52, 115),
+                new Color(88, 110, 41),
                 Color.LIGHT_GRAY,
                 Color.GRAY,
                 Color.DARK_GRAY,
-                Color.BLACK,
+                new Color (45, 125, 252),
                 new Color(128, 0, 128), // Roxo
                 new Color(255, 165, 0), // Laranja
                 new Color(0, 128, 128)  // Teal
@@ -527,6 +527,7 @@ public class LabirintoDoHorrorII {
         int result = folderChooser.showOpenDialog(null);
         if (result == JFileChooser.APPROVE_OPTION) {
             File selectedFolder = folderChooser.getSelectedFile();
+            @SuppressWarnings("unused")
             File[] txtFiles = selectedFolder.listFiles((dir, name) -> name.toLowerCase().endsWith(".txt"));
 
             if (txtFiles != null && txtFiles.length > 0) {
