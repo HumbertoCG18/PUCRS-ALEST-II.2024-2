@@ -61,6 +61,7 @@ public class MonkeyTree extends JPanel {
         }
     }
 
+    @SuppressWarnings("unused")
     public MonkeyTree(String filePath) {
         this.tree = readTreeFromFile(filePath);
         if (this.tree == null) {
@@ -91,6 +92,7 @@ public class MonkeyTree extends JPanel {
         debugButton.addActionListener(e -> showDebugLog());
     }
 
+    @SuppressWarnings("unused")
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
             Preferences prefs = Preferences.userRoot().node(PREFS_NODE);
@@ -199,6 +201,7 @@ public class MonkeyTree extends JPanel {
         int result = folderChooser.showOpenDialog(null);
         if (result == JFileChooser.APPROVE_OPTION) {
             File selectedFolder = folderChooser.getSelectedFile();
+            @SuppressWarnings("unused")
             File[] txtFiles = selectedFolder.listFiles((dir, name) -> name.endsWith(".txt"));
 
             if (txtFiles != null && txtFiles.length > 0) {
@@ -258,6 +261,7 @@ public class MonkeyTree extends JPanel {
         }
     }
 
+    @SuppressWarnings("unused")
     public void startVisualization() {
         resetState();
         findStartingPoint();
