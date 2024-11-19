@@ -14,7 +14,6 @@ import java.awt.RenderingHints;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import javax.swing.*;
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
@@ -27,6 +26,11 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.List;
+
+//Sumário:
+// Algoritimo DFS: 229
+
+//D:\OneDrive\Documentos\GitHub\PUCRS-ALEST-II.2024-2\25_10\T2\Labirintos
 
 public class LabirintoDoHorrorII {
 
@@ -91,17 +95,17 @@ public class LabirintoDoHorrorII {
                 Color.GREEN,
                 Color.BLUE,
                 Color.ORANGE,
-                new Color(252, 144, 198),
-                Color.CYAN,
-                new Color(179, 52, 115),
-                new Color(88, 110, 41),
                 Color.LIGHT_GRAY,
+                Color.CYAN,
                 Color.GRAY,
                 Color.DARK_GRAY,
-                new Color(45, 125, 252),
+                new Color(252, 144, 198),
+                new Color(233, 60, 186), // Rosa Choque
+                new Color(88, 110, 41), // Verde Militar Escuro
+                new Color(45, 125, 252), // Azul Escuro
                 new Color(128, 0, 128), // Roxo
                 new Color(255, 165, 0), // Laranja
-                new Color(0, 128, 128)  // Teal
+                new Color(0, 128, 127)  // Azul Esverdeado Escuro
         );
 
         // Mapa de cores para as regiões
@@ -201,7 +205,8 @@ public class LabirintoDoHorrorII {
                     Celula celula = grid[i][j];
                     if (!celula.visitado) {
                         dfs(celula, regiaoId);
-                        //System.out.println("Regiao " + regiaoId + " identificada.");
+                        //Debug das identificações das regiões no terminal:
+                        //System.out.println("Regiao " + regiaoId + " identificada."); 
                         regiaoId++;
                     }
                 }
@@ -215,7 +220,7 @@ public class LabirintoDoHorrorII {
                 Color color = getColorForRegion(id);
                 colorToString(color);
 
-                //Debug para o atribuição de cores no terminal
+                //Debug para o atribuição de cores no terminal:
                 //System.out.println("Região " + id + " atribuída à cor: " + colorToString(color));
             }
         }
@@ -498,7 +503,7 @@ public class LabirintoDoHorrorII {
             JPanel regioesPanel = new JPanel();
             regioesPanel.setLayout(new BorderLayout());
 
-            JLabel regioesLabel = new JLabel("Regiões:");
+            JLabel regioesLabel = new JLabel("Regioes:");
             regioesLabel.setFont(new Font("Arial", Font.BOLD, 18));
             regioesPanel.add(regioesLabel, BorderLayout.NORTH);
 
@@ -521,7 +526,7 @@ public class LabirintoDoHorrorII {
                 colorPanel.setBorder(BorderFactory.createLineBorder(Color.BLACK));
 
                 // Número da região
-                JLabel nomeLabel = new JLabel(" Região " + regiaoId);
+                JLabel nomeLabel = new JLabel(" Regiao " + regiaoId);
                 nomeLabel.setFont(new Font("Arial", Font.PLAIN, 14));
 
                 itemPanel.add(colorPanel);
@@ -564,7 +569,6 @@ public class LabirintoDoHorrorII {
         int result = folderChooser.showOpenDialog(null);
         if (result == JFileChooser.APPROVE_OPTION) {
             File selectedFolder = folderChooser.getSelectedFile();
-            @SuppressWarnings("unused")
             File[] txtFiles = selectedFolder.listFiles((dir, name) -> name.toLowerCase().endsWith(".txt"));
 
             if (txtFiles != null && txtFiles.length > 0) {
