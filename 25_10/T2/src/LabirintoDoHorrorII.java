@@ -755,7 +755,7 @@ public class LabirintoDoHorrorII {
             }
         
             // Espaçamento
-            seresPanel.add(Box.createVerticalStrut(20));
+            seresPanel.add(Box.createVerticalStrut(5));
         
             // Painel para as regiões
             JPanel regioesPanel = new JPanel();
