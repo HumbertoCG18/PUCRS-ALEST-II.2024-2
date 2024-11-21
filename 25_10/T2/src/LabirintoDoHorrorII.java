@@ -1,5 +1,6 @@
 package src;
 
+// Importações necessárias para funcionalidades gráficas, entrada/saída e estruturas de dados
 import java.awt.BasicStroke;
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -31,17 +32,17 @@ import java.util.Map;
 import java.util.List;
 import java.util.Set;
 
-// Define uma interface para notificar sobre a seleção de regiões
+// Interface para notificar sobre a seleção de regiões no labirinto
 interface RegionSelectionListener {
     void regionSelected(Integer regionId); // Passa o ID da região selecionada ou null para deseleção
 }
 
-// Classe Edge para representar as arestas da borda
+// Classe Edge para representar as arestas da borda de uma região
 class Edge {
     int x1, y1, x2, y2;
 
     public Edge(int x1, int y1, int x2, int y2) {
-        // Ordenar os pontos para garantir consistência
+        // Ordena os pontos para garantir consistência na representação da aresta
         if (x1 < x2 || (x1 == x2 && y1 <= y2)) {
             this.x1 = x1; this.y1 = y1; this.x2 = x2; this.y2 = y2;
         } else {
@@ -51,6 +52,7 @@ class Edge {
 
     @Override
     public boolean equals(Object o) {
+        // Verifica se duas arestas são iguais com base em suas coordenadas
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
@@ -60,6 +62,7 @@ class Edge {
 
     @Override
     public int hashCode() {
+        // Gera um código hash para a aresta baseado em suas coordenadas
         int result = x1;
         result = 31 * result + y1;
         result = 31 * result + x2;
@@ -70,7 +73,7 @@ class Edge {
 
 public class LabirintoDoHorrorII {
 
-    // Enum para os tipos de seres
+    // Enum para os tipos de seres presentes no labirinto
     enum Ser {
         ANAO("Anão", 'A'),
         BRUXA("Bruxa", 'B'),
@@ -95,23 +98,24 @@ public class LabirintoDoHorrorII {
             return codigo;
         }
 
+        // Método para obter o tipo de ser a partir de seu código
         public static Ser fromCodigo(char codigo) {
             for (Ser ser : Ser.values()) {
                 if (ser.codigo == codigo) {
                     return ser;
                 }
             }
-            return null;
+            return null; // Retorna null se o código não corresponder a nenhum ser conhecido
         }
     }
 
     // Classe que representa uma célula no labirinto
     static class Celula {
-        int x, y;
-        boolean[] paredes = new boolean[4]; // 0: cima, 1: direita, 2: baixo, 3: esquerda
-        boolean visitado = false;
-        int regiao = -1;
-        Ser ser = null;
+        int x, y; // Coordenadas da célula no grid
+        boolean[] paredes = new boolean[4]; // Indica a presença de paredes: 0: cima, 1: direita, 2: baixo, 3: esquerda
+        boolean visitado = false; // Flag para marcar se a célula já foi visitada durante a busca
+        int regiao = -1; // ID da região a que a célula pertence
+        Ser ser = null; // Tipo de ser presente na célula, se houver
 
         public Celula(int x, int y) {
             this.x = x;
@@ -119,13 +123,13 @@ public class LabirintoDoHorrorII {
         }
     }
 
-    // Classe que representa o labirinto
+    // Classe que representa o labirinto e contém toda a lógica para processamento e visualização
     static class Labirinto {
-        int M, N;
-        Celula[][] grid;
-        int numRegioes = 0;
-        Map<Integer, Map<Ser, Integer>> regioesSeres = new HashMap<>();
-        LabirintoPanel labirintoPanel;
+        int M, N; // Dimensões do labirinto (linhas e colunas)
+        Celula[][] grid; // Grid que representa as células do labirinto
+        int numRegioes = 0; // Contador de regiões identificadas
+        Map<Integer, Map<Ser, Integer>> regioesSeres = new HashMap<>(); // Mapeia cada região para a contagem de tipos de seres
+        LabirintoPanel labirintoPanel; // Painel gráfico para renderizar o labirinto
 
         // Lista fixa de cores para as regiões, excluindo a cor vermelha
         private final List<Color> predefinedColors = Arrays.asList(
@@ -145,13 +149,13 @@ public class LabirintoDoHorrorII {
                 new Color(0, 128, 127)  // Azul Esverdeado Escuro
         );
 
-        // Mapa de cores para as regiões
+        // Mapa de cores para as regiões, associando cada ID de região a uma cor
         Map<Integer, Color> regionColors = new HashMap<>();
 
-        // Mapa para associar cores aos seus nomes
+        // Mapa para associar cores aos seus nomes para exibição
         private static final Map<Integer, String> colorNameMap = new HashMap<>();
 
-        // Inicialização estática do mapa de cores
+        // Inicialização estática do mapa de cores com seus respectivos nomes
         static {
             colorNameMap.put(Color.GREEN.getRGB(), "Verde");
             colorNameMap.put(Color.BLUE.getRGB(), "Azul");
@@ -169,20 +173,34 @@ public class LabirintoDoHorrorII {
             colorNameMap.put(new Color(0, 128, 127).getRGB(), "Azul Esverdeado Escuro");
         }
 
-        // Método para obter a cor associada a uma região
+        /**
+         * Método para obter a cor associada a uma região.
+         * Se a região já tiver uma cor atribuída, retorna essa cor.
+         * Caso contrário, atribui uma cor da lista predefinedColors com base no ID da região.
+         *
+         * @param regionId ID da região
+         * @return Cor associada à região
+         */
         Color getColorForRegion(int regionId) {
-            // Se ja temos uma cor para esta região, retornamos
+            // Verifica se já existe uma cor atribuída para esta região
             if (regionColors.containsKey(regionId)) {
                 return regionColors.get(regionId);
             }
 
-            // Atribui uma cor fixa baseada no ID da região
+            // Atribui uma cor da lista predefinedColors com base no ID da região
             Color color = predefinedColors.get(regionId % predefinedColors.size());
             regionColors.put(regionId, color);
             return color;
         }
 
-        // Método para ler o labirinto a partir de um arquivo
+        /**
+         * Método para ler o labirinto a partir de um arquivo.
+         * O arquivo deve estar no formato especificado, com M e N na primeira linha
+         * e as linhas subsequentes representando as células com paredes e possíveis seres.
+         *
+         * @param filePath Caminho para o arquivo de labirinto
+         * @throws IOException Se houver problemas na leitura ou formatação do arquivo
+         */
         public void readMazeFromFile(String filePath) throws IOException {
             try (BufferedReader br = new BufferedReader(
                     new InputStreamReader(new FileInputStream(filePath), "UTF-8"))) {
@@ -207,6 +225,7 @@ public class LabirintoDoHorrorII {
 
                 grid = new Celula[M][N];
 
+                // Leitura das linhas que representam as células do labirinto
                 for (int i = 0; i < M; i++) {
                     linha = br.readLine();
                     if (linha == null) {
@@ -230,7 +249,7 @@ public class LabirintoDoHorrorII {
                         Celula celula = new Celula(i, j);
                         grid[i][j] = celula;
 
-                        // Verifica se é um ser (letra maiúscula)
+                        // Verifica se o caractere representa um ser (letra maiúscula)
                         if (Character.isLetter(ch) && Character.isUpperCase(ch)) {
                             celula.ser = Ser.fromCodigo(ch);
                             if (celula.ser == null) {
@@ -239,14 +258,14 @@ public class LabirintoDoHorrorII {
                             }
                         }
 
-                        // Parse o valor hexadecimal para paredes
+                        // Converte o caractere hexadecimal para representação de paredes
                         int valor = Character.digit(ch, 16);
                         if (valor == -1) {
                             throw new IOException("Arquivo inválido: caractere não hexadecimal '" + ch
                                     + "' na célula (" + i + "," + j + ").");
                         }
 
-                        // Converte o valor hexadecimal para bits (paredes)
+                        // Converte o valor hexadecimal para bits que representam as paredes
                         for (int k = 0; k < 4; k++) {
                             celula.paredes[k] = ((valor >> (3 - k)) & 1) == 1;
                         }
@@ -255,21 +274,22 @@ public class LabirintoDoHorrorII {
             }
         }
 
-        // Método para encontrar as regiões usando DFS
+        /**
+         * Método para encontrar as regiões no labirinto usando busca em profundidade (DFS).
+         * Cada célula conectada sem paredes forma uma região.
+         */
         public void encontrarRegioes() {
-            int regiaoId = 0;
+            int regiaoId = 0; // Inicializa o ID da região
             for (int i = 0; i < M; i++) {
                 for (int j = 0; j < N; j++) {
                     Celula celula = grid[i][j];
                     if (!celula.visitado) {
-                        dfs(celula, regiaoId);
-                        // Debug das identificações das regiões no terminal:
-                        // System.out.println("Regiao " + regiaoId + " identificada.");
-                        regiaoId++;
+                        dfs(celula, regiaoId); // Executa DFS a partir desta célula
+                        regiaoId++; // Incrementa o ID para a próxima região
                     }
                 }
             }
-            numRegioes = regiaoId;
+            numRegioes = regiaoId; // Total de regiões identificadas
 
             System.out.println("Total de regioes identificadas: " + numRegioes);
 
@@ -278,19 +298,24 @@ public class LabirintoDoHorrorII {
                 Color color = getColorForRegion(id);
                 colorToString(color);
 
-                // Debug para o atribuição de cores no terminal:
+                // Debug para a atribuição de cores no terminal:
                 // System.out.println("Região " + id + " atribuída à cor: " + colorToString(color));
             }
         }
 
-        // Busca em profundidade para marcar as regiões
+        /**
+         * Método auxiliar que implementa a busca em profundidade (DFS) para marcar as regiões.
+         *
+         * @param celula   Célula atual na busca
+         * @param regiaoId ID da região sendo marcada
+         */
         private void dfs(Celula celula, int regiaoId) {
-            celula.visitado = true;
-            celula.regiao = regiaoId;
+            celula.visitado = true; // Marca a célula como visitada
+            celula.regiao = regiaoId; // Atribui o ID da região à célula
             int x = celula.x;
             int y = celula.y;
 
-            // Movimentos: cima, direita, baixo, esquerda
+            // Arrays para facilitar os movimentos nas 4 direções: cima, direita, baixo, esquerda
             int[] dx = { -1, 0, 1, 0 };
             int[] dy = { 0, 1, 0, -1 };
 
@@ -298,18 +323,22 @@ public class LabirintoDoHorrorII {
                 int nx = x + dx[k];
                 int ny = y + dy[k];
 
-                if (!celula.paredes[k]) { // Não há parede na direção k
+                // Se não há parede na direção k e a célula vizinha está dentro dos limites
+                if (!celula.paredes[k]) {
                     if (nx >= 0 && nx < M && ny >= 0 && ny < N) {
                         Celula vizinho = grid[nx][ny];
                         if (!vizinho.visitado) {
-                            dfs(vizinho, regiaoId);
+                            dfs(vizinho, regiaoId); // Continua a busca a partir da célula vizinha
                         }
                     }
                 }
             }
         }
 
-        // Método para contar os seres em cada região
+        /**
+         * Método para contar os seres em cada região após a identificação das regiões.
+         * Atualiza o mapa regioesSeres com a contagem de cada tipo de ser em cada região.
+         */
         public void contarSeres() {
             for (int i = 0; i < M; i++) {
                 for (int j = 0; j < N; j++) {
@@ -323,7 +352,10 @@ public class LabirintoDoHorrorII {
             }
         }
 
-        // Método para imprimir os resultados
+        /**
+         * Método para imprimir os resultados das regiões e os seres mais frequentes em cada uma.
+         * Exibe no terminal o número total de regiões e o ser mais frequente em cada região.
+         */
         public void imprimirResultados() {
             System.out.println("Numero de regioes: " + numRegioes);
             for (int regiaoId = 0; regiaoId < numRegioes; regiaoId++) {
@@ -345,51 +377,61 @@ public class LabirintoDoHorrorII {
             }
         }
 
-        // Método auxiliar para converter cor para string usando o mapa
+        /**
+         * Método auxiliar para converter uma cor para uma string usando o mapa colorNameMap.
+         * Se a cor não estiver no mapa, retorna "Personalizada".
+         *
+         * @param color Objeto Color a ser convertido
+         * @return Nome da cor como string
+         */
         private String colorToString(Color color) {
             String colorName = colorNameMap.get(color.getRGB());
             return colorName != null ? colorName : "Personalizada";
         }
 
-        // Método para renderizar o labirinto usando Swing
+        /**
+         * Método para renderizar o labirinto usando Swing.
+         * Cria a interface gráfica, incluindo o painel do labirinto, a legenda e os controles.
+         */
         public void renderizar() {
             JFrame frame = new JFrame("Labirinto do Horror II");
             frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-            // Painel principal
+            // Painel principal com layout BorderLayout
             JPanel mainPanel = new JPanel(new BorderLayout());
 
+            // Inicializa o painel que desenha o labirinto
             labirintoPanel = new LabirintoPanel(grid, M, N, this);
 
-            // Painel de legendas
+            // Painel de legendas que mostra informações sobre os seres e regiões
             LegendPanel legendPanel = new LegendPanel(this);
 
             // Registrar o LegendPanel como ouvinte para seleção de regiões
             labirintoPanel.addRegionSelectionListener(legendPanel);
 
-            // Adiciona o labirinto a um JScrollPane
+            // Adiciona o painel do labirinto a um JScrollPane para permitir rolagem
             JScrollPane scrollPane = new JScrollPane(labirintoPanel);
             scrollPane.getVerticalScrollBar().setUnitIncrement(16);
             scrollPane.getHorizontalScrollBar().setUnitIncrement(16);
 
-            // Divisória entre os paineis
+            // Divisória entre os painéis do labirinto e da legenda
             JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, scrollPane, legendPanel);
             splitPane.setDividerLocation(0.75); // Define a posição inicial da divisória
             splitPane.setResizeWeight(0.75); // Prioriza o redimensionamento do labirinto
             mainPanel.add(splitPane, BorderLayout.CENTER);
 
-            // Botões de controle
+            // Botões de controle para zoom e seleção de outro arquivo de labirinto
             JButton zoomInButton = new JButton("Zoom In");
             JButton zoomOutButton = new JButton("Zoom Out");
             JButton botaoSelecionarArquivo = new JButton("Selecionar Outro Labirinto");
 
-            // Painel de controles
+            // Painel de controles com layout FlowLayout centralizado
             JPanel controlsPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
             controlsPanel.add(zoomInButton);
             controlsPanel.add(zoomOutButton);
             controlsPanel.add(botaoSelecionarArquivo);
 
-            // Adicionar ActionListeners aos botões de zoom
+            // Adiciona ActionListeners aos botões de zoom para ajustar o nível de zoom no painel do labirinto
             zoomInButton.addActionListener(new ActionListener() {
                 @Override
                 public void actionPerformed(ActionEvent e) {
@@ -404,16 +446,19 @@ public class LabirintoDoHorrorII {
                 }
             });
 
+            // ActionListener para o botão de selecionar outro labirinto
             botaoSelecionarArquivo.addActionListener(new ActionListener() {
                 @Override
                 public void actionPerformed(ActionEvent e) {
-                    frame.dispose();
-                    SwingUtilities.invokeLater(() -> main(null));
+                    frame.dispose(); // Fecha a janela atual
+                    SwingUtilities.invokeLater(() -> main(null)); // Reinicia o método main para selecionar outro arquivo
                 }
             });
 
+            // Adiciona o painel de controles ao painel principal na região sul
             mainPanel.add(controlsPanel, BorderLayout.SOUTH);
 
+            // Configura o frame principal
             frame.setContentPane(mainPanel);
             frame.setExtendedState(JFrame.MAXIMIZED_BOTH); // Abre a janela maximizada
             frame.setVisible(true);
@@ -422,15 +467,15 @@ public class LabirintoDoHorrorII {
 
     // Classe personalizada para desenhar o labirinto e lidar com interações de clique
     static class LabirintoPanel extends JPanel {
-        Celula[][] grid;
-        int M, N;
-        int tamanhoCelula;
-        Labirinto labirinto;
+        Celula[][] grid; // Grid de células do labirinto
+        int M, N; // Dimensões do labirinto
+        int tamanhoCelula; // Tamanho de cada célula na renderização
+        Labirinto labirinto; // Referência ao objeto Labirinto
 
         // ID da região atualmente destacada (-1 se nenhuma)
         private int highlightedRegionId = -1;
 
-        // Arestas da região destacada
+        // Arestas da região destacada para desenhar a borda
         private Set<Edge> highlightedRegionEdges = null;
 
         // Lista de ouvintes que serão notificados sobre a seleção de regiões
@@ -441,6 +486,14 @@ public class LabirintoDoHorrorII {
         private int maxCellSize = 100;
         private int zoomStep = 5;
 
+        /**
+         * Construtor da classe LabirintoPanel.
+         *
+         * @param grid      Grid de células do labirinto
+         * @param M         Número de linhas
+         * @param N         Número de colunas
+         * @param labirinto Referência ao objeto Labirinto
+         */
         public LabirintoPanel(Celula[][] grid, int M, int N, Labirinto labirinto) {
             this.grid = grid;
             this.M = M;
@@ -461,58 +514,76 @@ public class LabirintoDoHorrorII {
                 tamanhoCelula = 2;
             }
 
-            // Define o tamanho preferido
+            // Define o tamanho preferido do painel com base nas dimensões do labirinto
             updatePreferredSize();
 
-            // Adiciona um MouseListener para detectar cliques
+            // Adiciona um MouseListener para detectar cliques nas células do labirinto
             addMouseListener(new java.awt.event.MouseAdapter() {
                 @Override
                 public void mouseClicked(java.awt.event.MouseEvent e) {
-                    handleClick(e.getX(), e.getY());
+                    handleClick(e.getX(), e.getY()); // Processa o clique na posição (x, y)
                 }
             });
         }
 
-        // Método para atualizar o tamanho preferido do painel
+        /**
+         * Método para atualizar o tamanho preferido do painel com base nas dimensões do labirinto e no tamanho das células.
+         */
         private void updatePreferredSize() {
             setPreferredSize(new Dimension(N * tamanhoCelula, M * tamanhoCelula));
         }
 
-        // Método para aumentar o zoom
+        /**
+         * Método para aumentar o nível de zoom, aumentando o tamanho das células.
+         * Limita o tamanho máximo das células para evitar que o painel fique muito grande.
+         */
         public void zoomIn() {
             if (tamanhoCelula + zoomStep <= maxCellSize) {
                 tamanhoCelula += zoomStep;
                 updatePreferredSize();
                 if (highlightedRegionId != -1) {
-                    highlightedRegionEdges = computeRegionBoundary(highlightedRegionId);
+                    highlightedRegionEdges = computeRegionBoundary(highlightedRegionId); // Recalcula as bordas da região destacada
                 }
-                revalidate();
-                repaint();
+                revalidate(); // Revalida o layout do painel
+                repaint(); // Redesenha o painel
             }
         }
 
-        // Método para diminuir o zoom
+        /**
+         * Método para diminuir o nível de zoom, reduzindo o tamanho das células.
+         * Limita o tamanho mínimo das células para evitar que o labirinto se torne ilegível.
+         */
         public void zoomOut() {
             if (tamanhoCelula - zoomStep >= minCellSize) {
                 tamanhoCelula -= zoomStep;
                 updatePreferredSize();
                 if (highlightedRegionId != -1) {
-                    highlightedRegionEdges = computeRegionBoundary(highlightedRegionId);
+                    highlightedRegionEdges = computeRegionBoundary(highlightedRegionId); // Recalcula as bordas da região destacada
                 }
-                revalidate();
-                repaint();
+                revalidate(); // Revalida o layout do painel
+                repaint(); // Redesenha o painel
             }
         }
 
-        // Método para adicionar ouvintes
+        /**
+         * Método para adicionar ouvintes que serão notificados sobre a seleção de regiões.
+         *
+         * @param listener Ouvinte que implementa a interface RegionSelectionListener
+         */
         public void addRegionSelectionListener(RegionSelectionListener listener) {
             listeners.add(listener);
         }
 
-        // Método para lidar com cliques do mouse
+        /**
+         * Método para lidar com cliques do mouse no painel do labirinto.
+         * Determina qual célula foi clicada e destaca a região correspondente.
+         *
+         * @param mouseX Coordenada X do clique
+         * @param mouseY Coordenada Y do clique
+         */
         private void handleClick(int mouseX, int mouseY) {
-            int j = mouseX / tamanhoCelula;
-            int i = mouseY / tamanhoCelula;
+            int j = mouseX / tamanhoCelula; // Calcula a coluna clicada
+            int i = mouseY / tamanhoCelula; // Calcula a linha clicada
 
             if (i >= 0 && i < M && j >= 0 && j < N) {
                 Celula clickedCell = grid[i][j];
@@ -524,15 +595,14 @@ public class LabirintoDoHorrorII {
                     highlightedRegionEdges = null;
                     notifyRegionSelection(null);
                 } else {
-                    // Seleciona a nova região
+                    // Seleciona a nova região e calcula suas bordas
                     highlightedRegionId = clickedRegionId;
-                    // Computa as arestas da região destacada
                     highlightedRegionEdges = computeRegionBoundary(highlightedRegionId);
                     notifyRegionSelection(highlightedRegionId);
                 }
-                repaint();
+                repaint(); // Redesenha o painel para refletir as mudanças
             } else {
-                // Clique fora de qualquer célula, deseleciona a região
+                // Clique fora de qualquer célula, deseleciona a região destacada
                 if (highlightedRegionId != -1) {
                     highlightedRegionId = -1;
                     highlightedRegionEdges = null;
@@ -542,14 +612,24 @@ public class LabirintoDoHorrorII {
             }
         }
 
-        // Método para notificar os ouvintes sobre a seleção da região
+        /**
+         * Método para notificar todos os ouvintes sobre a seleção de uma região.
+         *
+         * @param regionId ID da região selecionada ou null se nenhuma estiver selecionada
+         */
         private void notifyRegionSelection(Integer regionId) {
             for (RegionSelectionListener listener : listeners) {
                 listener.regionSelected(regionId);
             }
         }
 
-        // Método para computar as arestas de borda da região
+        /**
+         * Método para computar as arestas de borda de uma região destacada.
+         * Isso é usado para desenhar uma borda amarela ao redor da região selecionada.
+         *
+         * @param regionId ID da região a ser destacada
+         * @return Conjunto de arestas que formam a borda da região
+         */
         private Set<Edge> computeRegionBoundary(int regionId) {
             Set<Edge> boundaryEdges = new HashSet<>();
             for (int i = 0; i < M; i++) {
@@ -559,7 +639,7 @@ public class LabirintoDoHorrorII {
                         int x = j;
                         int y = i;
 
-                        // Movimentos: 0: cima, 1: direita, 2: baixo, 3: esquerda
+                        // Arrays para facilitar os movimentos nas 4 direções: cima, direita, baixo, esquerda
                         int[] dx = {0, 1, 0, -1};
                         int[] dy = {-1, 0, 1, 0};
 
@@ -585,7 +665,7 @@ public class LabirintoDoHorrorII {
                             }
 
                             if (isBoundary) {
-                                // Adicionar a aresta à lista de bordas
+                                // Calcula as coordenadas dos pontos finais da aresta com base na direção
                                 int x1 = x * tamanhoCelula;
                                 int y1 = y * tamanhoCelula;
                                 int x2 = x1;
@@ -611,7 +691,7 @@ public class LabirintoDoHorrorII {
                                         break;
                                 }
                                 Edge edge = new Edge(x1, y1, x2, y2);
-                                boundaryEdges.add(edge);
+                                boundaryEdges.add(edge); // Adiciona a aresta ao conjunto de bordas
                             }
                         }
                     }
@@ -620,6 +700,12 @@ public class LabirintoDoHorrorII {
             return boundaryEdges;
         }
 
+        /**
+         * Método sobrescrito para desenhar o labirinto no painel.
+         * Utiliza Graphics2D para melhor controle sobre a renderização.
+         *
+         * @param g Objeto Graphics utilizado para desenhar
+         */
         @Override
         protected void paintComponent(Graphics g) {
             super.paintComponent(g);
@@ -628,31 +714,31 @@ public class LabirintoDoHorrorII {
             g.setColor(Color.WHITE);
             g.fillRect(0, 0, getWidth(), getHeight());
 
-            // Usa Graphics2D para configurações avançadas
-            Graphics2D g2 = (Graphics2D) g.create(); // Cria uma cópia de g2
+            // Cria uma cópia de Graphics para configurações avançadas
+            Graphics2D g2 = (Graphics2D) g.create();
 
-            // Habilita anti-aliasing para melhor qualidade
+            // Habilita anti-aliasing para melhor qualidade de desenho
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-            // Define a espessura da linha
-            float strokeWidth = Math.max(1.0f, tamanhoCelula / 10.0f); // Ajusta a espessura com base no tamanho da célula
+            // Define a espessura das linhas com base no tamanho das células
+            float strokeWidth = Math.max(1.0f, tamanhoCelula / 10.0f);
             g2.setStroke(new BasicStroke(strokeWidth));
 
-            // Desenha as células
+            // Itera sobre todas as células para desenhá-las
             for (int i = 0; i < M; i++) {
                 for (int j = 0; j < N; j++) {
                     int x = j * tamanhoCelula;
                     int y = i * tamanhoCelula;
                     Celula celula = grid[i][j];
 
-                    // Determina a cor da célula
+                    // Determina a cor da célula com base na região
                     Color regionColor = labirinto.getColorForRegion(celula.regiao);
 
                     g2.setColor(regionColor);
-                    g2.fillRect(x, y, tamanhoCelula, tamanhoCelula);
+                    g2.fillRect(x, y, tamanhoCelula, tamanhoCelula); // Preenche a célula com a cor da região
 
                     if (highlightedRegionId != -1 && celula.regiao != highlightedRegionId) {
-                        // Preenche com preto semi-transparente
+                        // Preenche células que não estão na região destacada com preto semi-transparente
                         Composite originalComposite = g2.getComposite();
                         g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.85f));
                         g2.setColor(Color.BLACK);
@@ -660,9 +746,8 @@ public class LabirintoDoHorrorII {
                         g2.setComposite(originalComposite);
                     }
 
-                    // Desenha as paredes em preto
+                    // Desenha as paredes da célula em preto
                     g2.setColor(Color.BLACK);
-                    // Desenha as paredes
                     if (celula.paredes[0]) { // Cima
                         g2.drawLine(x, y, x + tamanhoCelula, y);
                     }
@@ -676,12 +761,12 @@ public class LabirintoDoHorrorII {
                         g2.drawLine(x, y, x, y + tamanhoCelula);
                     }
 
-                    // Desenha o ser, se houver
+                    // Desenha o ser, se houver, apenas na região destacada ou se nenhuma região estiver destacada
                     if (celula.ser != null && (highlightedRegionId == -1 || celula.regiao == highlightedRegionId)) {
-                        // Apenas desenha o Ser se estiver na região destacada ou se nenhuma região estiver destacada
-                        // Todos os seres agora são vermelhos
+                        // Define a cor dos seres como vermelho
                         Color serColor = Color.RED;
                         if (tamanhoCelula >= 10) {
+                            // Desenha o código do ser como uma letra centralizada na célula
                             int fontSize = tamanhoCelula - 2;
                             g2.setColor(serColor);
                             g2.setFont(new Font("Arial", Font.BOLD, fontSize));
@@ -695,77 +780,83 @@ public class LabirintoDoHorrorII {
 
                             g2.drawString(texto, textX, textY);
                         } else {
-                            // Desenha um quadrado colorido
+                            // Desenha um pequeno quadrado vermelho para representar o ser
                             g2.setColor(serColor);
                             int size = Math.max(1, tamanhoCelula / 2);
                             int offset = (tamanhoCelula - size) / 2;
                             g2.fillRect(x + offset, y + offset, size, size);
                         }
-                        g2.setColor(Color.BLACK);
+                        g2.setColor(Color.BLACK); // Restaura a cor para desenhar outras paredes
                     }
                 }
             }
 
             // Desenha a borda amarela ao redor da região destacada
             if (highlightedRegionId != -1 && highlightedRegionEdges != null) {
-                g2.setColor(Color.YELLOW);
-                g2.setStroke(new BasicStroke(2.0f)); // Define a espessura da borda
+                g2.setColor(Color.YELLOW); // Cor da borda destacada
+                g2.setStroke(new BasicStroke(2.0f)); // Espessura da borda
                 for (Edge edge : highlightedRegionEdges) {
-                    g2.drawLine(edge.x1, edge.y1, edge.x2, edge.y2);
+                    g2.drawLine(edge.x1, edge.y1, edge.x2, edge.y2); // Desenha cada aresta da borda
                 }
             }
 
-            g2.dispose();
+            g2.dispose(); // Libera os recursos utilizados pelo Graphics2D
         }
     }
 
-    // Painel de legendas
+    // Classe que representa o painel de legendas, exibindo informações sobre os seres e regiões
     static class LegendPanel extends JPanel implements RegionSelectionListener {
         Labirinto labirinto;
 
-        // Componentes para exibir as informações da região selecionada
+        // Componente para exibir informações sobre a região selecionada
         private JLabel infoLabel;
 
+        /**
+         * Construtor da classe LegendPanel.
+         *
+         * @param labirinto Referência ao objeto Labirinto para acessar informações sobre as regiões
+         */
         public LegendPanel(Labirinto labirinto) {
             this.labirinto = labirinto;
 
             setLayout(new BorderLayout());
             setBorder(BorderFactory.createTitledBorder("Legenda"));
-            setPreferredSize(new Dimension(250, 0)); // Largura fixa
+            setPreferredSize(new Dimension(250, 0)); // Define uma largura fixa para o painel de legendas
 
-            // Painel para os seres
+            // Painel para exibir a legenda dos seres
             JPanel seresPanel = new JPanel();
             seresPanel.setLayout(new BoxLayout(seresPanel, BoxLayout.Y_AXIS));
 
-            // Legenda para os seres (todos em vermelho)
+            // Cria uma legenda para cada tipo de ser, todos representados com cores vermelhas
             for (Ser ser : Ser.values()) {
                 JPanel itemPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
 
-                // Pequeno quadrado vermelho para representar o Ser
+                // Pequeno quadrado vermelho para representar o ser na legenda
                 JPanel colorPanel = new JPanel();
                 colorPanel.setBackground(Color.RED);
                 colorPanel.setPreferredSize(new Dimension(16, 16));
                 colorPanel.setBorder(BorderFactory.createLineBorder(Color.BLACK));
 
-                // Letra do Ser (A, B, etc.)
+                // Letra que representa o ser
                 JLabel letraLabel = new JLabel(String.valueOf(ser.getCodigo()));
                 letraLabel.setFont(new Font("Arial", Font.BOLD, 12));
                 letraLabel.setForeground(Color.RED);
 
-                // Nome do Ser
+                // Nome do ser
                 JLabel nomeLabel = new JLabel(" - " + ser.getNome());
                 nomeLabel.setFont(new Font("Arial", Font.PLAIN, 14));
 
+                // Adiciona os componentes ao itemPanel e, em seguida, ao seresPanel
                 itemPanel.add(colorPanel);
                 itemPanel.add(letraLabel);
                 itemPanel.add(nomeLabel);
                 seresPanel.add(itemPanel);
             }
 
-            // Espaçamento
+            // Espaçamento entre a legenda dos seres e das regiões
             seresPanel.add(Box.createVerticalStrut(5));
 
-            // Painel para as regiões
+            // Painel para exibir as regiões com suas cores correspondentes
             JPanel regioesPanel = new JPanel();
             regioesPanel.setLayout(new BorderLayout());
 
@@ -773,19 +864,20 @@ public class LabirintoDoHorrorII {
             regioesLabel.setFont(new Font("Arial", Font.BOLD, 18));
             regioesPanel.add(regioesLabel, BorderLayout.NORTH);
 
-            // Painel para listar as regiões com múltiplas colunas
+            // Painel para listar as regiões em múltiplas colunas
             JPanel regioesListPanel = new JPanel();
-            int numColunas = 3; // Defina o número de colunas desejado
-            regioesListPanel.setLayout(new GridLayout(0, numColunas, 10, 10)); // 0 linhas, 3 colunas, 10px gaps
+            int numColunas = 3; // Define o número de colunas desejado para a lista de regiões
+            regioesListPanel.setLayout(new GridLayout(0, numColunas, 10, 10)); // 0 linhas, 3 colunas, gaps de 10px
 
-            // Ordenar as regiões por ID
+            // Ordena as regiões por ID para uma apresentação consistente
             List<Integer> regiaoIds = new ArrayList<>(labirinto.regionColors.keySet());
             Collections.sort(regiaoIds);
 
+            // Cria um item de legenda para cada região
             for (Integer regiaoId : regiaoIds) {
                 JPanel itemPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
 
-                // Pequeno quadrado colorido para representar a Região
+                // Pequeno quadrado colorido para representar a região na legenda
                 JPanel colorPanel = new JPanel();
                 colorPanel.setBackground(labirinto.getColorForRegion(regiaoId));
                 colorPanel.setPreferredSize(new Dimension(16, 16));
@@ -795,32 +887,33 @@ public class LabirintoDoHorrorII {
                 JLabel nomeLabel = new JLabel(" Regiao " + regiaoId);
                 nomeLabel.setFont(new Font("Arial", Font.PLAIN, 14));
 
+                // Adiciona os componentes ao itemPanel e, em seguida, ao regioesListPanel
                 itemPanel.add(colorPanel);
                 itemPanel.add(nomeLabel);
                 regioesListPanel.add(itemPanel);
             }
 
-            // Adicionar regioesListPanel a um JScrollPane
+            // Adiciona o painel de regiões a um JScrollPane para permitir rolagem se necessário
             JScrollPane regioesScrollPane = new JScrollPane(regioesListPanel);
-            regioesScrollPane.setPreferredSize(new Dimension(250, 300)); // Ajuste conforme necessário
+            regioesScrollPane.setPreferredSize(new Dimension(250, 300)); // Define o tamanho preferido do scroll
             regioesScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
             regioesScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
             regioesScrollPane.setBorder(BorderFactory.createEmptyBorder());
 
             regioesPanel.add(regioesScrollPane, BorderLayout.CENTER);
 
-            // Painel principal de legendas
+            // Painel principal que contém as legendas dos seres e das regiões
             JPanel legendasMainPanel = new JPanel();
             legendasMainPanel.setLayout(new BoxLayout(legendasMainPanel, BoxLayout.Y_AXIS));
             legendasMainPanel.add(seresPanel);
             legendasMainPanel.add(Box.createVerticalStrut(10));
             legendasMainPanel.add(regioesPanel);
 
-            // Adicionar legendasMainPanel a um JScrollPane
+            // Adiciona o painel de legendas principal a um JScrollPane
             JScrollPane legendasScrollPane = new JScrollPane(legendasMainPanel);
             legendasScrollPane.setBorder(BorderFactory.createEmptyBorder()); // Remove borda extra
 
-            // Adicionar o JScrollPane ao LegendPanel
+            // Adiciona o JScrollPane ao LegendPanel
             add(legendasScrollPane, BorderLayout.CENTER);
 
             // Área para exibir informações sobre a região selecionada
@@ -830,14 +923,19 @@ public class LabirintoDoHorrorII {
             add(infoLabel, BorderLayout.SOUTH);
         }
 
-        // Implementação do método da interface RegionSelectionListener
+        /**
+         * Implementação do método da interface RegionSelectionListener.
+         * Atualiza o infoLabel com informações sobre a região selecionada.
+         *
+         * @param regionId ID da região selecionada ou null se nenhuma estiver selecionada
+         */
         @Override
         public void regionSelected(Integer regionId) {
             if (regionId == null) {
                 // Nenhuma região selecionada
                 infoLabel.setText("Clique em uma região para ver detalhes.");
             } else {
-                // Obter o Ser mais frequente da região
+                // Obtém o ser mais frequente na região selecionada
                 Map<Ser, Integer> mapaSeres = labirinto.regioesSeres.getOrDefault(regionId, new HashMap<>());
                 if (!mapaSeres.isEmpty()) {
                     Ser serMaisFrequente = null;
@@ -848,45 +946,59 @@ public class LabirintoDoHorrorII {
                             serMaisFrequente = entry.getKey();
                         }
                     }
+                    // Atualiza o label com o ser mais frequente
                     infoLabel.setText("<html>Região " + regionId + ":<br>Ser mais frequente: " + serMaisFrequente.getNome() + "</html>");
                 } else {
+                    // Nenhum ser encontrado na região
                     infoLabel.setText("<html>Região " + regionId + ":<br>Nenhum Ser encontrado.</html>");
                 }
             }
         }
     }
 
+    /**
+     * Método principal que inicia o programa.
+     * Configura a codificação de caracteres, cria o labirinto, lê o arquivo, processa as regiões e renderiza a interface gráfica.
+     *
+     * @param args Argumentos de linha de comando (não utilizados)
+     */
     public static void main(String[] args) {
-        // Definir o padrão de codificação para UTF-8
+        // Define o padrão de codificação para UTF-8 para evitar problemas com caracteres especiais
         System.setProperty("file.encoding", "UTF-8");
 
         // Executa o programa na thread da interface gráfica
         SwingUtilities.invokeLater(() -> {
-            String caminhoArquivo = selectFileDialog();
+            String caminhoArquivo = selectFileDialog(); // Abre um diálogo para selecionar o arquivo do labirinto
 
             if (caminhoArquivo == null) {
-                // Usuário cancelou a seleção
+                // Usuário cancelou a seleção, encerra o programa
                 System.exit(0);
             }
 
-            // Cria o labirinto
+            // Cria o objeto Labirinto
             Labirinto labirinto = new Labirinto();
 
             try {
-                labirinto.readMazeFromFile(caminhoArquivo);
-                labirinto.encontrarRegioes();
-                labirinto.contarSeres();
-                labirinto.imprimirResultados();
-                labirinto.renderizar();
+                labirinto.readMazeFromFile(caminhoArquivo); // Lê o arquivo do labirinto
+                labirinto.encontrarRegioes(); // Identifica as regiões no labirinto
+                labirinto.contarSeres(); // Conta os seres em cada região
+                labirinto.imprimirResultados(); // Imprime os resultados no terminal
+                labirinto.renderizar(); // Renderiza a interface gráfica do labirinto
             } catch (IOException e) {
+                // Exibe uma mensagem de erro caso ocorra algum problema na leitura do arquivo
                 JOptionPane.showMessageDialog(null, "Erro ao ler o arquivo: " + e.getMessage(), "Erro",
                         JOptionPane.ERROR_MESSAGE);
-                e.printStackTrace();
+                e.printStackTrace(); // Imprime a pilha de exceções no terminal para depuração
             }
         });
     }
 
-    // Método para selecionar o arquivo de labirinto
+    /**
+     * Método para abrir um diálogo de seleção de arquivo.
+     * Permite ao usuário selecionar uma pasta contendo arquivos de labirinto e, em seguida, escolher um arquivo .txt específico.
+     *
+     * @return Caminho absoluto do arquivo selecionado ou null se o usuário cancelar a operação
+     */
     private static String selectFileDialog() {
         String selectedFile = null;
         JFileChooser folderChooser = new JFileChooser();
@@ -897,15 +1009,17 @@ public class LabirintoDoHorrorII {
         int result = folderChooser.showOpenDialog(null);
         if (result == JFileChooser.APPROVE_OPTION) {
             File selectedFolder = folderChooser.getSelectedFile();
+            // Filtra apenas os arquivos com extensão .txt na pasta selecionada
             File[] txtFiles = selectedFolder.listFiles((dir, name) -> name.toLowerCase().endsWith(".txt"));
 
             if (txtFiles != null && txtFiles.length > 0) {
-                Arrays.sort(txtFiles, Comparator.comparing(File::getName));
+                Arrays.sort(txtFiles, Comparator.comparing(File::getName)); // Ordena os arquivos por nome
 
                 String[] fileNames = Arrays.stream(txtFiles)
                         .map(File::getName)
                         .toArray(String[]::new);
 
+                // Abre um diálogo para o usuário escolher um dos arquivos .txt
                 String chosenFile = (String) JOptionPane.showInputDialog(
                         null,
                         "Escolha um arquivo TXT para visualizar:",
@@ -919,6 +1033,7 @@ public class LabirintoDoHorrorII {
                     selectedFile = new File(selectedFolder, chosenFile).getAbsolutePath();
                 }
             } else {
+                // Informa ao usuário que nenhum arquivo .txt foi encontrado na pasta selecionada
                 JOptionPane.showMessageDialog(null, "Nenhum arquivo TXT encontrado na pasta selecionada.");
             }
         }
