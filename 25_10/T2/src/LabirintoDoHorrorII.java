@@ -148,9 +148,30 @@ public class LabirintoDoHorrorII {
         // Mapa de cores para as regiões
         Map<Integer, Color> regionColors = new HashMap<>();
 
+        // Mapa para associar cores aos seus nomes
+        private static final Map<Integer, String> colorNameMap = new HashMap<>();
+
+        // Inicialização estática do mapa de cores
+        static {
+            colorNameMap.put(Color.GREEN.getRGB(), "Verde");
+            colorNameMap.put(Color.BLUE.getRGB(), "Azul");
+            colorNameMap.put(Color.ORANGE.getRGB(), "Laranja");
+            colorNameMap.put(Color.LIGHT_GRAY.getRGB(), "Cinza Claro");
+            colorNameMap.put(Color.CYAN.getRGB(), "Ciano");
+            colorNameMap.put(Color.GRAY.getRGB(), "Cinza");
+            colorNameMap.put(Color.DARK_GRAY.getRGB(), "Cinza Escuro");
+            colorNameMap.put(new Color(252, 144, 198).getRGB(), "Pink Claro");
+            colorNameMap.put(new Color(233, 60, 186).getRGB(), "Rosa Choque");
+            colorNameMap.put(new Color(88, 110, 41).getRGB(), "Verde Militar Escuro");
+            colorNameMap.put(new Color(45, 125, 252).getRGB(), "Azul Escuro");
+            colorNameMap.put(new Color(128, 0, 128).getRGB(), "Roxo");
+            colorNameMap.put(new Color(255, 165, 0).getRGB(), "Laranja");
+            colorNameMap.put(new Color(0, 128, 127).getRGB(), "Azul Esverdeado Escuro");
+        }
+
         // Método para obter a cor associada a uma região
         Color getColorForRegion(int regionId) {
-            // Se já temos uma cor para esta região, retornamos
+            // Se ja temos uma cor para esta região, retornamos
             if (regionColors.containsKey(regionId)) {
                 return regionColors.get(regionId);
             }
@@ -167,14 +188,14 @@ public class LabirintoDoHorrorII {
                     new InputStreamReader(new FileInputStream(filePath), "UTF-8"))) {
                 String linha = br.readLine();
                 if (linha == null || linha.trim().isEmpty()) {
-                    throw new IOException("Arquivo inválido: a primeira linha deve conter M e N.");
+                    throw new IOException("Arquivo invalido: a primeira linha deve conter M e N.");
                 }
 
                 // Leitura de M e N como inteiros separados por espaço
                 String[] dimensoes = linha.trim().split("\\s+");
                 if (dimensoes.length < 2) {
                     throw new IOException(
-                            "Arquivo inválido: a primeira linha deve conter M e N separados por espaço.");
+                            "Arquivo invalido: a primeira linha deve conter M e N separados por espaço.");
                 }
 
                 try {
@@ -243,7 +264,7 @@ public class LabirintoDoHorrorII {
                     if (!celula.visitado) {
                         dfs(celula, regiaoId);
                         // Debug das identificações das regiões no terminal:
-                        // System.out.println("Regiao " + regiaoId + " identificada."); 
+                        // System.out.println("Regiao " + regiaoId + " identificada.");
                         regiaoId++;
                     }
                 }
@@ -324,23 +345,10 @@ public class LabirintoDoHorrorII {
             }
         }
 
-        // Método auxiliar para converter cor para string
+        // Método auxiliar para converter cor para string usando o mapa
         private String colorToString(Color color) {
-            if (color.equals(Color.GREEN)) return "Verde";
-            if (color.equals(Color.BLUE)) return "Azul";
-            if (color.equals(Color.ORANGE)) return "Laranja";
-            if (color.equals(Color.LIGHT_GRAY)) return "Cinza Claro";
-            if (color.equals(Color.CYAN)) return "Ciano";
-            if (color.equals(Color.GRAY)) return "Cinza";
-            if (color.equals(Color.DARK_GRAY)) return "Cinza Escuro";
-            if (color.equals(new Color(252, 144, 198))) return "Pink Claro";
-            if (color.equals(new Color(233, 60, 186))) return "Rosa Choque";
-            if (color.equals(new Color(88, 110, 41))) return "Verde Militar Escuro";
-            if (color.equals(new Color(45, 125, 252))) return "Azul Escuro";
-            if (color.equals(new Color(128, 0, 128))) return "Roxo";
-            if (color.equals(new Color(255, 165, 0))) return "Laranja";
-            if (color.equals(new Color(0, 128, 127))) return "Azul Esverdeado Escuro";
-            return "Personalizada";
+            String colorName = colorNameMap.get(color.getRGB());
+            return colorName != null ? colorName : "Personalizada";
         }
 
         // Método para renderizar o labirinto usando Swing
@@ -355,7 +363,7 @@ public class LabirintoDoHorrorII {
 
             // Painel de legendas
             LegendPanel legendPanel = new LegendPanel(this);
-            
+
             // Registrar o LegendPanel como ouvinte para seleção de regiões
             labirintoPanel.addRegionSelectionListener(legendPanel);
 
@@ -418,27 +426,27 @@ public class LabirintoDoHorrorII {
         int M, N;
         int tamanhoCelula;
         Labirinto labirinto;
-        
+
         // ID da região atualmente destacada (-1 se nenhuma)
         private int highlightedRegionId = -1;
-        
+
         // Arestas da região destacada
         private Set<Edge> highlightedRegionEdges = null;
-        
+
         // Lista de ouvintes que serão notificados sobre a seleção de regiões
         private List<RegionSelectionListener> listeners = new ArrayList<>();
-        
+
         // Variáveis para controle do zoom
-        private int minCellSize = 2;
+        private final int minCellSize = 2;
         private int maxCellSize = 100;
         private int zoomStep = 5;
-        
+
         public LabirintoPanel(Celula[][] grid, int M, int N, Labirinto labirinto) {
             this.grid = grid;
             this.M = M;
             this.N = N;
             this.labirinto = labirinto;
-        
+
             // Ajusta o tamanho da célula com base no tamanho do labirinto
             int maxDimension = Math.max(M, N);
             if (maxDimension <= 20) {
@@ -452,10 +460,10 @@ public class LabirintoDoHorrorII {
             } else {
                 tamanhoCelula = 2;
             }
-        
+
             // Define o tamanho preferido
             updatePreferredSize();
-        
+
             // Adiciona um MouseListener para detectar cliques
             addMouseListener(new java.awt.event.MouseAdapter() {
                 @Override
@@ -464,12 +472,12 @@ public class LabirintoDoHorrorII {
                 }
             });
         }
-        
+
         // Método para atualizar o tamanho preferido do painel
         private void updatePreferredSize() {
             setPreferredSize(new Dimension(N * tamanhoCelula, M * tamanhoCelula));
         }
-        
+
         // Método para aumentar o zoom
         public void zoomIn() {
             if (tamanhoCelula + zoomStep <= maxCellSize) {
@@ -482,7 +490,7 @@ public class LabirintoDoHorrorII {
                 repaint();
             }
         }
-        
+
         // Método para diminuir o zoom
         public void zoomOut() {
             if (tamanhoCelula - zoomStep >= minCellSize) {
@@ -495,21 +503,21 @@ public class LabirintoDoHorrorII {
                 repaint();
             }
         }
-        
+
         // Método para adicionar ouvintes
         public void addRegionSelectionListener(RegionSelectionListener listener) {
             listeners.add(listener);
         }
-        
+
         // Método para lidar com cliques do mouse
         private void handleClick(int mouseX, int mouseY) {
             int j = mouseX / tamanhoCelula;
             int i = mouseY / tamanhoCelula;
-        
+
             if (i >= 0 && i < M && j >= 0 && j < N) {
                 Celula clickedCell = grid[i][j];
                 int clickedRegionId = clickedCell.regiao;
-        
+
                 if (highlightedRegionId == clickedRegionId) {
                     // Se a mesma região foi clicada novamente, deseleciona
                     highlightedRegionId = -1;
@@ -533,14 +541,14 @@ public class LabirintoDoHorrorII {
                 }
             }
         }
-        
+
         // Método para notificar os ouvintes sobre a seleção da região
         private void notifyRegionSelection(Integer regionId) {
             for (RegionSelectionListener listener : listeners) {
                 listener.regionSelected(regionId);
             }
         }
-        
+
         // Método para computar as arestas de borda da região
         private Set<Edge> computeRegionBoundary(int regionId) {
             Set<Edge> boundaryEdges = new HashSet<>();
@@ -611,7 +619,7 @@ public class LabirintoDoHorrorII {
             }
             return boundaryEdges;
         }
-        
+
         @Override
         protected void paintComponent(Graphics g) {
             super.paintComponent(g);
@@ -714,114 +722,114 @@ public class LabirintoDoHorrorII {
     // Painel de legendas
     static class LegendPanel extends JPanel implements RegionSelectionListener {
         Labirinto labirinto;
-        
+
         // Componentes para exibir as informações da região selecionada
         private JLabel infoLabel;
-        
+
         public LegendPanel(Labirinto labirinto) {
             this.labirinto = labirinto;
-        
+
             setLayout(new BorderLayout());
             setBorder(BorderFactory.createTitledBorder("Legenda"));
             setPreferredSize(new Dimension(250, 0)); // Largura fixa
-        
+
             // Painel para os seres
             JPanel seresPanel = new JPanel();
             seresPanel.setLayout(new BoxLayout(seresPanel, BoxLayout.Y_AXIS));
-        
+
             // Legenda para os seres (todos em vermelho)
             for (Ser ser : Ser.values()) {
                 JPanel itemPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
-        
+
                 // Pequeno quadrado vermelho para representar o Ser
                 JPanel colorPanel = new JPanel();
                 colorPanel.setBackground(Color.RED);
                 colorPanel.setPreferredSize(new Dimension(16, 16));
                 colorPanel.setBorder(BorderFactory.createLineBorder(Color.BLACK));
-        
+
                 // Letra do Ser (A, B, etc.)
                 JLabel letraLabel = new JLabel(String.valueOf(ser.getCodigo()));
                 letraLabel.setFont(new Font("Arial", Font.BOLD, 12));
                 letraLabel.setForeground(Color.RED);
-        
+
                 // Nome do Ser
                 JLabel nomeLabel = new JLabel(" - " + ser.getNome());
                 nomeLabel.setFont(new Font("Arial", Font.PLAIN, 14));
-        
+
                 itemPanel.add(colorPanel);
                 itemPanel.add(letraLabel);
                 itemPanel.add(nomeLabel);
                 seresPanel.add(itemPanel);
             }
-        
+
             // Espaçamento
             seresPanel.add(Box.createVerticalStrut(5));
-        
+
             // Painel para as regiões
             JPanel regioesPanel = new JPanel();
             regioesPanel.setLayout(new BorderLayout());
-        
+
             JLabel regioesLabel = new JLabel("Regiões:");
             regioesLabel.setFont(new Font("Arial", Font.BOLD, 18));
             regioesPanel.add(regioesLabel, BorderLayout.NORTH);
-        
+
             // Painel para listar as regiões com múltiplas colunas
             JPanel regioesListPanel = new JPanel();
             int numColunas = 3; // Defina o número de colunas desejado
             regioesListPanel.setLayout(new GridLayout(0, numColunas, 10, 10)); // 0 linhas, 3 colunas, 10px gaps
-        
+
             // Ordenar as regiões por ID
             List<Integer> regiaoIds = new ArrayList<>(labirinto.regionColors.keySet());
             Collections.sort(regiaoIds);
-        
+
             for (Integer regiaoId : regiaoIds) {
                 JPanel itemPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
-        
+
                 // Pequeno quadrado colorido para representar a Região
                 JPanel colorPanel = new JPanel();
                 colorPanel.setBackground(labirinto.getColorForRegion(regiaoId));
                 colorPanel.setPreferredSize(new Dimension(16, 16));
                 colorPanel.setBorder(BorderFactory.createLineBorder(Color.BLACK));
-        
+
                 // Número da região
                 JLabel nomeLabel = new JLabel(" Regiao " + regiaoId);
                 nomeLabel.setFont(new Font("Arial", Font.PLAIN, 14));
-        
+
                 itemPanel.add(colorPanel);
                 itemPanel.add(nomeLabel);
                 regioesListPanel.add(itemPanel);
             }
-        
+
             // Adicionar regioesListPanel a um JScrollPane
             JScrollPane regioesScrollPane = new JScrollPane(regioesListPanel);
             regioesScrollPane.setPreferredSize(new Dimension(250, 300)); // Ajuste conforme necessário
             regioesScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
             regioesScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
             regioesScrollPane.setBorder(BorderFactory.createEmptyBorder());
-        
+
             regioesPanel.add(regioesScrollPane, BorderLayout.CENTER);
-        
+
             // Painel principal de legendas
             JPanel legendasMainPanel = new JPanel();
             legendasMainPanel.setLayout(new BoxLayout(legendasMainPanel, BoxLayout.Y_AXIS));
             legendasMainPanel.add(seresPanel);
             legendasMainPanel.add(Box.createVerticalStrut(10));
             legendasMainPanel.add(regioesPanel);
-        
+
             // Adicionar legendasMainPanel a um JScrollPane
             JScrollPane legendasScrollPane = new JScrollPane(legendasMainPanel);
             legendasScrollPane.setBorder(BorderFactory.createEmptyBorder()); // Remove borda extra
-        
+
             // Adicionar o JScrollPane ao LegendPanel
             add(legendasScrollPane, BorderLayout.CENTER);
-        
+
             // Área para exibir informações sobre a região selecionada
             infoLabel = new JLabel("Clique em uma região para ver detalhes.");
             infoLabel.setFont(new Font("Arial", Font.PLAIN, 14));
             infoLabel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
             add(infoLabel, BorderLayout.SOUTH);
         }
-    
+
         // Implementação do método da interface RegionSelectionListener
         @Override
         public void regionSelected(Integer regionId) {
@@ -889,7 +897,6 @@ public class LabirintoDoHorrorII {
         int result = folderChooser.showOpenDialog(null);
         if (result == JFileChooser.APPROVE_OPTION) {
             File selectedFolder = folderChooser.getSelectedFile();
-            @SuppressWarnings("unused")
             File[] txtFiles = selectedFolder.listFiles((dir, name) -> name.toLowerCase().endsWith(".txt"));
 
             if (txtFiles != null && txtFiles.length > 0) {
